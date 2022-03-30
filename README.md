@@ -1,8 +1,8 @@
-# Parallel solution for transcoding video as VP9 codec
+# Parallel solution for transcoding video as VP9 codec (in Progress)
 
 ## Abstract
 
-VP9 코덱으로 영상 트랜스코딩 할 때 속도가 느린 단점을 개선한 프로그램
+VP9 코덱으로 영상 트랜스코딩 할 때 속도가 느린 단점을 개선한 프로그램 (개발 진행중)
 
 ## Introduction
 
