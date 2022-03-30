@@ -42,6 +42,7 @@ def ffmpeg_segment(fp_in: str, ext_out: str):
 
         # wait until audio transcoding is finished
         fp_audio = async_audio.get()[0]
+        log.info(fp_audio)
 
         # merge video and audio
         fp_out = ffmpeg.mux_video_audio(fp_video, fp_audio)

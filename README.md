@@ -1,8 +1,8 @@
-# Parallel solution for transcoding video as VP9 codec (in Progress)
+# Parallel solution for transcoding video as VP9 codec
 
 ## Abstract
 
-VP9 코덱으로 영상 트랜스코딩 할 때 속도가 느린 단점을 개선한 프로그램 (개발 진행중)
+VP9 코덱으로 영상 트랜스코딩 할 때 속도가 느린 단점을 개선한 프로그램
 
 ## Introduction
 
@@ -40,4 +40,27 @@ mux 단계에서는 트랜스코딩이 다 끝난 온전한 형태의 비디오�
 
 ## Evaluation
 
-(작성 예정)
+기존 방법의 세팅은 아래와 같다. 영상을 단순히 `ffmpeg` 에 넣고 돌리는 것 뿐이다.
+
+```bash
+ffmpeg -hide_banner -y -analyzeduration 2147483647 -probesize 2147483647 -avoid_negative_ts 1 -i <input>.mp4 -max_muxing_queue_size 4096 -c:v libvpx-vp9 -b:v 0 -pix_fmt:v yuv420p -cpu-used:v 8 -crf:v 27 -c:a libopus -b:a 128k <output>.webm
+```
+
+비교 실험 결과는 아래와 같다. 기존 방법 대비 새 방법(divide-and-conquer)이 2~3배 빠르면서, 인코딩 후 용량은 크게 차이 나지 않는다.
+
+| 번호 | 종류 | 원본 영상 속성 | 원본 영상 용량 (MB) | 새 방법의 인코딩 후 용량 (MB) | 기존 방법의 인코딩 후 용량 (MB) | 원본 영상 길이 (초) | 새 방법의 트랜스코딩 시간 (초) | 새 방법의 트랜스코딩 배속 (배) | 기존 방법의 트랜스코딩 배속 (배) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 애니메이션 | 1080p, H265, yuv420p | 105.64 | 80.37 | 68.02 | 129 | 169 | 0.763 | 0.407 |
+| 2 | 실사 | 1080p, H265, yuv420p | 621.10 | 541.57 | 493.94 | 746 | 860 | 0.867 | 0.295 |
+| 3 | 애니메이션, 정지화면 다수 | 1080p, H265, yuv420p10le | 89.04 | 49.17 | 50.39 | 951 | 494 | 1.925 | 0.812 |
+| 4 | 애니메이션 | 1080p, H265, yuv420p10le | 255.95 | 135.41 | 135.32 | 711 | 779 | 0.913 | 0.481 |
+
+## Future Work
+
+- `ctrl+c` 를 눌러 중단시킬 경우 프로그램이 제대로 중단되지 못한다. 빠른 구현을 위해 Python을 썼지만 실제로 쓰려면 `Go`를 쓰는것이 좋아보인다.
+
+- 몇몇 영상 파일의 경우는 오디오 스트림 지정이 제대로 되지 않는 문제가 있었다. `ffmpeg` 옵션을 더 찾아봐야한다.
+
+- 기존에 만들어둔 [AutoAVS](https://github.com/sunrise2575/AutoAVS) 와 합칠 수 있는지 생각해보자.
+
+- 서버를 여러 대 활용하여 분산 인코딩을 할 순 없을지 생각해보자.
