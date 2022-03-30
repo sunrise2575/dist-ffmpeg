@@ -2,6 +2,7 @@ import logging as log
 from typing import *
 import multiprocessing as mp
 import os
+import math
 
 import src.proc as proc
 import src.path as path
@@ -14,11 +15,12 @@ log.basicConfig(
 
 
 def ffmpeg_segment(fp_in: str, ext_out: str):
-    with proc.NestablePool(mp.cpu_count() / 4) as pool:
+    with proc.NestablePool(math.ceil(mp.cpu_count() / 4)) as pool:
         async_audio = pool.map_async(ffmpeg.encode_audio_only, [fp_in])
 
         # split into video segments
-        fps_video_split = ffmpeg.split_video(fp_in, mp.cpu_count() / 4)
+        fps_video_split = ffmpeg.split_video(
+            fp_in, math.ceil(mp.cpu_count() / 4))
         log.info(fps_video_split)
 
         # transcode video segments
