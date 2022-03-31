@@ -13,7 +13,7 @@ import (
 	"github.com/sunrise2575/VP9-parallel/src/fsys"
 )
 
-func encodeVP9(fp_in string, ext_out string) string {
+func encodeVP9(fp_in string, audio_stream_number int, ext_out string) string {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[ABORT] %v, capture a panic", fp_in)
@@ -25,7 +25,7 @@ func encodeVP9(fp_in string, ext_out string) string {
 		res := make(chan string, 1)
 		go func(fp_in string) {
 			defer close(res)
-			res <- ffmpeg.EncodeAudioOnly(fp_in)
+			res <- ffmpeg.EncodeAudioOnly(fp_in, audio_stream_number)
 		}(fp_in)
 		return res
 	}()
@@ -98,7 +98,7 @@ func main() {
 
 		log.Printf("[START] %v", fp_in)
 		start := time.Now()
-		fp_out := encodeVP9(fp_in, ext_out)
+		fp_out := encodeVP9(fp_in, 0, ext_out)
 		elapsed := time.Since(start)
 		log.Printf("[DONE] %v, elapsed: %v (sec)", fp_out, elapsed.Seconds())
 

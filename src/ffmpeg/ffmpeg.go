@@ -59,14 +59,18 @@ func SplitVideo(fp_in string, expected_file_count int) []string {
 	return result
 }
 
-func EncodeAudioOnly(fp_in string) string {
+func EncodeAudioOnly(fp_in string, audio_stream_number int) string {
+	if !(audio_stream_number >= 0) {
+		log.Panicf("[PANIC] it should be audio_stream_number >= 0")
+	}
+
 	fp_in = fsys.Sanitize(fp_in)
 	dir, name, _ := fsys.Split(fp_in)
 	outfile := fsys.Join(dir, "."+name+"_audio", ".ogg")
 
 	arg := strings.Fields(FFMPEG_COMMON_INPUT_ARG + "-i")
 	arg = append(arg, fp_in)
-	arg = append(arg, strings.Fields(FFMPEG_COMMON_OUTPUT_ARG+"-vn -c:a libopus -b:a 128k -map 0:a:0?")...)
+	arg = append(arg, strings.Fields(FFMPEG_COMMON_OUTPUT_ARG+"-vn -c:a libopus -b:a 128k -map 0:a:"+strconv.Itoa(audio_stream_number))...)
 	arg = append(arg, outfile)
 
 	//log.Println(arg)
