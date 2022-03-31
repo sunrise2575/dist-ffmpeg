@@ -72,7 +72,7 @@ func encodeVP9(fp_in string, audio_stream_number int, ext_out string) string {
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	dp_in := "C:/Users/heeyong/Desktop/test/"
+	dp_in := `T:\.media\test`
 	dp_in = fsys.Sanitize(dp_in)
 	ext_out := ".webm"
 
@@ -89,7 +89,7 @@ func main() {
 			return nil
 		}
 		_, name, ext := fsys.Split(fp_in)
-		if !(len(name) > 1 && name[0] != '.') {
+		if len(name) > 0 && name[0] == '.' {
 			return nil
 		}
 		if _, ok := ext_candidate[ext]; !ok {
