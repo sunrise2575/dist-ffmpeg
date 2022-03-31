@@ -39,7 +39,7 @@ func SplitVideo(fp_in string, expected_file_count int) []string {
 
 	//log.Println(arg)
 
-	if _, e := exec.Command("ffmpeg", arg...).Output(); e != nil {
+	if _, e := exec.Command("ffmpeg", arg...).CombinedOutput(); e != nil {
 		log.Panicf("[PANIC] Failed to execute ffmpeg, error: %v", e)
 	} //else { log.Println(out) }
 
@@ -70,12 +70,12 @@ func EncodeAudioOnly(fp_in string, audio_stream_number int) string {
 
 	arg := strings.Fields(FFMPEG_COMMON_INPUT_ARG + "-i")
 	arg = append(arg, fp_in)
-	arg = append(arg, strings.Fields(FFMPEG_COMMON_OUTPUT_ARG+"-vn -c:a libopus -b:a 128k -map 0:a:"+strconv.Itoa(audio_stream_number))...)
+	arg = append(arg, strings.Fields(FFMPEG_COMMON_OUTPUT_ARG+"-vn -ac 2 -c:a libopus -b:a 128k -map 0:a:"+strconv.Itoa(audio_stream_number))...)
 	arg = append(arg, outfile)
 
 	//log.Println(arg)
 
-	if _, e := exec.Command("ffmpeg", arg...).Output(); e != nil {
+	if _, e := exec.Command("ffmpeg", arg...).CombinedOutput(); e != nil {
 		log.Panicf("[PANIC] Failed to execute ffmpeg, error: %v", e)
 	} //else { log.Println(out) }
 
@@ -93,7 +93,7 @@ func EncodeVideoOnly(fp_in string, ext_out string) string {
 
 	//log.Println(arg)
 
-	if _, e := exec.Command("ffmpeg", arg...).Output(); e != nil {
+	if _, e := exec.Command("ffmpeg", arg...).CombinedOutput(); e != nil {
 		log.Panicf("[PANIC] Failed to execute ffmpeg, error: %v", e)
 	} //else { log.Println(out) }
 
@@ -140,7 +140,7 @@ func ConcatFiles(fps_in []string, ext_out string) string {
 
 	//log.Println(arg)
 
-	if _, e := exec.Command("ffmpeg", arg...).Output(); e != nil {
+	if _, e := exec.Command("ffmpeg", arg...).CombinedOutput(); e != nil {
 		log.Panicf("[PANIC] Failed to execute ffmpeg, error: %v", e)
 	} //else { log.Println(out) }
 
@@ -168,7 +168,7 @@ func MuxVideoAudio(fp_in_video string, fp_in_audio string) string {
 
 	//log.Println(arg)
 
-	if _, e := exec.Command("ffmpeg", arg...).Output(); e != nil {
+	if _, e := exec.Command("ffmpeg", arg...).CombinedOutput(); e != nil {
 		log.Panicf("[PANIC] Failed to execute ffmpeg, error: %v", e)
 	} //else { log.Println(out) }
 

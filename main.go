@@ -98,7 +98,8 @@ func main() {
 
 		log.Printf("[START] %v", fp_in)
 		start := time.Now()
-		fp_out := encodeVP9(fp_in, 0, ext_out)
+		audio_stream_number := 0
+		fp_out := encodeVP9(fp_in, audio_stream_number, ext_out)
 		elapsed := time.Since(start)
 		log.Printf("[DONE] %v, elapsed: %v (sec)", fp_out, elapsed.Seconds())
 

@@ -15,7 +15,7 @@ func StreamInfoJSON(fp_in string) []gjson.Result {
 	arg := strings.Fields("-v quiet -print_format json -show_streams")
 	arg = append(arg, fp_in)
 
-	result, e := exec.Command("ffprobe", arg...).Output()
+	result, e := exec.Command("ffprobe", arg...).CombinedOutput()
 	if e != nil {
 		log.Panicf("[PANIC] Failed to execute ffprobe, error: %v", e)
 	}
@@ -28,7 +28,7 @@ func VideoTime(fp_in string) float64 {
 	arg := strings.Fields("-v error -select_streams v:0 -show_entries format=duration -of default=noprint_wrappers=1:nokey=1")
 	arg = append(arg, fp_in)
 
-	bresult, e := exec.Command("ffprobe", arg...).Output()
+	bresult, e := exec.Command("ffprobe", arg...).CombinedOutput()
 	if e != nil {
 		log.Panicf("[PANIC] Failed to execute ffprobe, error: %v", e)
 	}
@@ -47,7 +47,7 @@ func VideoFrame(fp_in string) int {
 	arg := strings.Fields("-v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0")
 	arg = append(arg, fp_in)
 
-	bresult, e := exec.Command("ffprobe", arg...).Output()
+	bresult, e := exec.Command("ffprobe", arg...).CombinedOutput()
 	if e != nil {
 		log.Panicf("[PANIC] Failed to execute ffprobe, error: %v", e)
 	}
