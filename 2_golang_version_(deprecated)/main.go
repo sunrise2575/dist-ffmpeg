@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"path/filepath"
@@ -30,7 +31,7 @@ func encodeVP9(fp_in string, audio_stream_number int, ext_out string) string {
 		return res
 	}()
 
-	fps_video_split := ffmpeg.SplitVideo(fp_in, runtime.NumCPU()/4)
+	fps_video_split := ffmpeg.SplitVideo(fp_in, runtime.NumCPU()/2)
 	//log.Println(fps_video_split)
 
 	var wg sync.WaitGroup
@@ -72,9 +73,14 @@ func encodeVP9(fp_in string, audio_stream_number int, ext_out string) string {
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	dp_in := `T:\.media\test`
+
+	var dp_in, ext_out string
+
+	flag.StringVar(&dp_in, "root", ".", "Root path for input files")
+	flag.StringVar(&ext_out, "ext", ".webm", "Output Target Ext")
+	flag.Parse()
+
 	dp_in = fsys.Sanitize(dp_in)
-	ext_out := ".webm"
 
 	ext_candidate := map[string]struct{}{}
 	for _, v := range []string{".mp4", ".mkv", ".avi"} {

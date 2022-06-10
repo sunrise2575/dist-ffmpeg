@@ -1,0 +1,36 @@
+{
+  "image": {
+    "skip_if": {
+      "codec_name": "^(png)$"
+    },
+    "ffmpeg_param": "-an",
+    "target_ext": "png"
+  },
+  "audio": {
+    "skip_if": {
+      "codec_name": "^(vorbis|opus)$"
+    },
+    "selection_prefer": {
+      "channels": "2",
+      "tags": {
+        "language": "^(jpn|und)$",
+        "title": "(?i)^(?!.*comment).*$"
+      }
+    },
+    "selection_priority": [
+      "tags.title",
+      "tags.language",
+      "channels"
+    ],
+    "ffmpeg_param": "-vn -ac 2 -c:a libopus -b:a 128k",
+    "target_ext": "ogg"
+  },
+  "video": {
+    "skip_if": {
+      "codec_name": "^(vp9)$",
+      "pix_fmt": "^(yuv420p)$"
+    },
+    "ffmpeg_param": "-c:v libvpx-vp9 -threads:v 8 -row-mt:v 1 -b:v 0 -pix_fmt:v yuv420p -cpu-used:v 4 -crf:v 27",
+    "target_ext": "webm"
+  }
+}
