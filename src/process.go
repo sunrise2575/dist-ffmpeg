@@ -21,7 +21,7 @@ func processAudioOnly(ctx *TranscodingContext) FilepathSplit {
 	}
 
 	// select audio stream (not implemented)
-	audio_stream := 0
+	audio_stream := selectAudioStream(ctx)
 	ffmpegEncodeAudioOnly(ctx.fp, temp, ctx.config.Get("audio.ffmpeg_param").String(), audio_stream)
 	ctx.SwapFileToOriginal(temp)
 

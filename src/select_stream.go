@@ -1,17 +1,16 @@
 package main
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/dlclark/regexp2"
 	"github.com/tidwall/gjson"
 )
 
-func flattenJSONKey(json gjson.Result) map[string]struct{} {
+func flattenJSONKey(json gjson.Result) map[string]bool {
 	root := "@this"
 	reserve := []string{root}
-	complete := make(map[string]struct{})
+	complete := make(map[string]bool)
 
 	//fmt.Printf("%v -> %v -> %v INIT\n", reserve, nil, complete)
 	//fmt.Println(json)
@@ -30,7 +29,7 @@ func flattenJSONKey(json gjson.Result) map[string]struct{} {
 				reserve = append(reserve, newkey)
 				//fmt.Printf("%v -> %v -> %v JSON\n", reserve, current, complete)
 			} else {
-				complete[newkey] = struct{}{}
+				complete[newkey] = true
 				//fmt.Printf("%v -> %v -> %v ELSE\n", reserve, current, complete)
 			}
 		}
@@ -49,122 +48,75 @@ func matchRegexPCRE2(regex string, target string) bool {
 	return matched
 }
 
-func selectStreamBestFit(codecType string, queryJSON gjson.Result, priorityInvertedIndex map[string]int, metaJSONArray []gjson.Result) int {
-
-	// this function is my own "priority-aware sorting" algorithm
-
-	type scoreType struct {
-		index int
-		score []int
+func selectAudioStream(ctx *TranscodingContext) int {
+	// check the number of audio streams
+	scoreboard := map[int]uint{}
+	for index, info := range ctx.stream_info {
+		if info.Get("codec_type").String() == "audio" {
+			scoreboard[index] = 0
+		}
+	}
+	if len(scoreboard) == 1 {
+		return 0
 	}
 
-	scoreDimension := len(priorityInvertedIndex) + 1
-	scoreBoard := make([]scoreType, len(metaJSONArray))
+	// check the selection_prefer query
+	prefer := ctx.config.Get("audio.selection_prefer")
+	if !prefer.Exists() {
+		return 0
+	}
 
-	queryKeys := flattenJSONKey(queryJSON)
+	// check the selection_priority query
+	priority := ctx.config.Get("audio.selection_priority")
+	if !priority.Exists() {
+		return 0
+	}
 
-	for i, streamMeta := range metaJSONArray {
-		streamMetaKeys := flattenJSONKey(streamMeta)
+	// check the key equivalence of two query
+	prefer_keys := flattenJSONKey(priority)
+	priority_keys := flattenJSONKey(priority)
+	for key := range prefer_keys {
+		if !priority_keys[key] {
+			return 0
+		}
+	}
 
-		// alloc score section
-		scoreBoard[i] = scoreType{
-			index: int(streamMeta.Get("index").Int()),
-			score: make([]int, scoreDimension)}
-
-		// hash-join (match each line of flattened JSON metadata and JSON query)
-		for queryKey := range queryKeys {
-			if _, ok0 := streamMetaKeys[queryKey]; ok0 {
-				if matchRegexPCRE2(queryJSON.Get(queryKey).String(), streamMeta.Get(queryKey).String()) {
-					// if the queryKey is in "matching_priority"
-					if scoreIndex, ok1 := priorityInvertedIndex[queryKey]; ok1 {
-						scoreBoard[i].score[scoreIndex] += 1
-					} else {
-						scoreBoard[i].score[scoreDimension-1] += 1
-					}
+	// find best-fit
+	for index := range scoreboard {
+		target := ctx.stream_info[index]
+		target_keys := flattenJSONKey(target)
+		score_unit := 63
+		for key := range priority_keys {
+			if target_keys[key] {
+				if matchRegexPCRE2(prefer.Get(key).String(), target.Get(key).String()) {
+					scoreboard[index] += (1 << score_unit)
 				}
 			}
+			score_unit--
+			if score_unit < 0 {
+				// max priority: 64
+				break
+			}
 		}
 	}
 
-	sort.Slice(scoreBoard, func(i, j int) bool {
-		// lower index in the score array == higher priority
-		for s := 0; s < scoreDimension; s++ {
-			if scoreBoard[i].score[s] == scoreBoard[j].score[s] {
-				continue
-			}
-			return scoreBoard[i].score[s] > scoreBoard[j].score[s]
+	// find best score and return the stream index
+	max_index := 0
+	max_score := uint(0)
+	for index, score := range scoreboard {
+		if score > max_score {
+			max_score = score
+			max_index = index
 		}
+	}
 
-		// if rank is not decided
-		return scoreBoard[i].index < scoreBoard[j].index
-	})
-
-	return scoreBoard[0].index
+	return max_index
 }
 
 /*
-func selectStream(arg commonArgType, mediaMetaJSON gjson.Result) map[string]transcodingInfoType {
-
-	// group-by existing stream in the media file
-	groupBy := make(map[string][]gjson.Result)
-	for _, metaJSON := range mediaMetaJSON.Array() {
-		codecType := metaJSON.Get("codec_type").String()
-		if value, ok := groupBy[codecType]; ok {
-			groupBy[codecType] = append(value, metaJSON)
-		} else {
-			groupBy[codecType] = []gjson.Result{metaJSON}
-		}
-	}
-
-	result := make(map[string]transcodingInfoType)
-
-	// intersect stream type between groupBy and queryInvertedIndex
-	// i.e. stream=["Video":["video0", "video1"], "subtitle0"] AND query=["Video", "Audio"] = [best_fit(["video0", "video1"])]
-	for codecType, metaJSONArray := range groupBy {
-		{
-			if _, ok := arg.queryJSON[codecType]; !ok {
-				continue
-			}
-		}
-
-		// after this line, the stream type is exists both input media side and query side
-		temp := -1
-
-		currentJSON := arg.queryJSON[codecType]
-		queryJSON := currentJSON.Get("select_prefer")
-
-		if len(metaJSONArray) > 1 && queryJSON.Exists() {
-			// the input media have multiple stream of same type and the user specifies the stream information
-			// it must pick best-fit single stream from input media stream
-
-			// preprocessing for best-fit
-			priorityInvertedIndex := make(map[string]int)
-
-			priorityJSON := currentJSON.Get("select_priority")
-			if priorityJSON.Exists() {
-				for index, key := range priorityJSON.Array() {
-					priorityInvertedIndex[key.String()] = index
-				}
-			}
-
-			// find best-fit
-			temp = findStreamBestFit(codecType, queryJSON, priorityInvertedIndex, metaJSONArray)
-		} else {
-			// the input media have single stream of same type or the user doesn't specifies the stream information
-			temp = int(metaJSONArray[0].Get("index").Int())
-		}
-		result[codecType] =
-			transcodingInfoType{
-				streamIndex:         temp,
-				isTranscodeRequired: true,
-				streamInfo:          mediaMetaJSON.Array()[temp]}
-	}
-
-	return result
-}
-*/
-
-func checkSkip(stream_info gjson.Result, query gjson.Result) bool {
+func checkSkip(ctx *TranscodingContext) bool {
+	// stream info, 파일 확장자 2개를 본다.
+	// audio 파일, video 파일 서로 보는게 다르다
 	for query_key, query_value := range query.Map() {
 		if !matchRegexPCRE2(query_value.String(), stream_info.Get(query_key).String()) {
 			// not matching
@@ -174,6 +126,7 @@ func checkSkip(stream_info gjson.Result, query gjson.Result) bool {
 
 	return true
 }
+*/
 
 /*
 func streamWizard(fp_in, ext_out string, conf gjson.Result) map[string]StreamSelectionResult {

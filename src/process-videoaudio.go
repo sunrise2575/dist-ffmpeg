@@ -16,13 +16,13 @@ func processVideoAndAudio(ctx *TranscodingContext) FilepathSplit {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go func(ctx *TranscodingContext) {
+	go func() {
 		defer wg.Done()
 
 		//audio stream selection (TODO)
-		audio_stream := 0
+		audio_stream := selectAudioStream(ctx)
 		ffmpegEncodeAudioOnly(ctx.fp, fp_audio, ctx.config.Get("audio.ffmpeg_param").String(), audio_stream)
-	}(ctx)
+	}()
 
 	// video
 	fps_video := ffmpegSplitVideo(ctx, runtime.NumCPU())
