@@ -113,29 +113,24 @@ func selectAudioStream(ctx *TranscodingContext) int {
 	return max_index
 }
 
-/*
-func checkSkip(ctx *TranscodingContext) bool {
-	// stream info, 파일 확장자 2개를 본다.
-	// audio 파일, video 파일 서로 보는게 다르다
-	for query_key, query_value := range query.Map() {
-		if !matchRegexPCRE2(query_value.String(), stream_info.Get(query_key).String()) {
-			// not matching
-			return false
+func checkSkip(ctx *TranscodingContext, codec_type string, stream_idx int) bool {
+	target := ctx.stream_info[stream_idx]
+	target_keys := flattenJSONKey(target)
+	query := ctx.config.Get(codec_type).Get("skip_if")
+	query_keys := flattenJSONKey(query)
+
+	if !(target.Exists() && query.Exists()) {
+		return false
+	}
+
+	for query_key := range query_keys {
+		if target_keys[query_key] {
+			if !matchRegexPCRE2(query.Get(query_key).String(), target.Get(query_key).String()) {
+				// not matching
+				return false
+			}
 		}
 	}
 
 	return true
 }
-*/
-
-/*
-func streamWizard(fp_in, ext_out string, conf gjson.Result) map[string]StreamSelectionResult {
-	// find best fit
-	// find skippable thing -> (transcode, skip)
-	// compare to ext -> (skip, copy)
-}
-
-func audioStreamSelection() {
-
-}
-*/
