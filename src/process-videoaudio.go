@@ -21,8 +21,6 @@ func processVideoAndAudio(ctx *TranscodingContext) FilepathSplit {
 	skip_audio := checkSkip(ctx, "audio", audio_stream_idx)
 	skip_video := checkSkip(ctx, "video", video_stream_idx)
 
-	var wg sync.WaitGroup
-
 	// audio
 	fp_audio := FilepathSplit{
 		dir:  ctx.temp_dir,
@@ -30,15 +28,18 @@ func processVideoAndAudio(ctx *TranscodingContext) FilepathSplit {
 		ext:  "." + ctx.config.Get("audio.target_ext").String(),
 	}
 
-	wg.Add(1)
+	audio_complete := make(chan bool, 1)
+
 	go func() {
-		defer wg.Done()
+		defer close(audio_complete)
 
 		if skip_audio {
 			ffmpegEncodeAudioOnly(ctx.fp, fp_audio, "-vn -c:a copy", audio_stream_idx)
 		} else {
 			ffmpegEncodeAudioOnly(ctx.fp, fp_audio, ctx.config.Get("audio.ffmpeg_param").String(), audio_stream_idx)
 		}
+
+		audio_complete <- true
 	}()
 
 	fp_video_concat_out := FilepathSplit{
@@ -50,6 +51,8 @@ func processVideoAndAudio(ctx *TranscodingContext) FilepathSplit {
 	if skip_video {
 		ffmpegEncodeVideoOnly(ctx.fp, fp_video_concat_out, "-an -c:v copy")
 	} else {
+		var wg sync.WaitGroup
+
 		// video split transcoding
 		fps_video := ffmpegSplitVideo(ctx, runtime.NumCPU())
 		fps_video_comp := make([]FilepathSplit, len(fps_video))
@@ -78,6 +81,7 @@ func processVideoAndAudio(ctx *TranscodingContext) FilepathSplit {
 
 		// video segment path consumer
 		for worker_id := 0; worker_id < runtime.NumCPU()/8; worker_id++ {
+			//for worker_id := 0; worker_id < 1; worker_id++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -101,13 +105,16 @@ func processVideoAndAudio(ctx *TranscodingContext) FilepathSplit {
 			ext:  ".txt",
 		}
 
+		wg.Wait()
+
 		ffmpegConcatFiles(fps_video_comp, fp_text, fp_video_concat_out)
 
 		for _, fp := range fps_video_comp {
 			os.RemoveAll(fp.Join())
 		}
 	}
-	wg.Wait()
+
+	<-audio_complete
 
 	fp_mux_out := FilepathSplit{
 		dir:  ctx.temp_dir,
