@@ -8,6 +8,13 @@ Python으로 프로토타입을 만들고 Go로 실제 사용 가능한 소프�
 
 곧 AutoAVS와 합칠 예정
 
+
+#
+
+```
+go build src/
+go run 
+
 ## Introduction
 
 트랜스코딩(transcoding)이란 하나의 영상 코덱(codec)에서 다른 영상 코덱으로 데이터 구조를 변환시키는 작업을 말한다. 트랜스코딩은 영상을 디코딩(decoding)하여 인코딩(encoding)하는 과정으로 이루어진다.
