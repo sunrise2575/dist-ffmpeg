@@ -116,6 +116,5 @@ func GetCurrentFunctionInfo() string {
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
-
-	return fmt.Sprintf("%v:%v", frame.File, frame.Function)
+	return fmt.Sprintf("%s:%s:%d", frame.File, frame.Function, frame.Line)
 }

@@ -33,7 +33,7 @@ func VideoAndAudio(ctx *Context) File {
 	// audio
 	fp_audio := File{
 		Dir:  ctx.TempDir,
-		Name: "." + ctx.FilePath.Name + "_audio_" + ctx.ID,
+		Name: "." + ctx.ID + "_audio",
 		Ext:  "." + ctx.Config.Get("audio.target_ext").String(),
 	}
 
@@ -58,7 +58,7 @@ func VideoAndAudio(ctx *Context) File {
 
 	fp_video_concat_out := File{
 		Dir:  ctx.TempDir,
-		Name: "." + ctx.FilePath.Name + "_videoconcat_" + ctx.ID,
+		Name: "." + ctx.ID + "_videoconcat",
 		Ext:  "." + ctx.Config.Get("video.target_ext").String(),
 	}
 
@@ -67,8 +67,15 @@ func VideoAndAudio(ctx *Context) File {
 	} else {
 		var wg sync.WaitGroup
 
+		workers := runtime.NumCPU() / 4
+
 		// video split transcoding
-		fps_video := ffmpegSplitVideo(ctx, runtime.NumCPU())
+
+		fps_video := ffmpegSplitVideo(ctx, workers, File{
+			Dir:  ctx.TempDir,
+			Name: "." + ctx.ID + "_video_%d", // must use %d
+			Ext:  ctx.FilePath.Ext,
+		})
 		fps_video_comp := make([]File, len(fps_video))
 
 		job_q := make(chan job, 128)
@@ -92,7 +99,7 @@ func VideoAndAudio(ctx *Context) File {
 		}()
 
 		// video segment path consumer
-		for worker_id := 0; worker_id < runtime.NumCPU()/5; worker_id++ {
+		for worker_id := 0; worker_id < workers; worker_id++ {
 			//for worker_id := 0; worker_id < 1; worker_id++ {
 			wg.Add(1)
 			go func() {
@@ -118,7 +125,7 @@ func VideoAndAudio(ctx *Context) File {
 
 		fp_text := File{
 			Dir:  ctx.TempDir,
-			Name: "." + ctx.FilePath.Name + "_concatlist_" + ctx.ID,
+			Name: "." + ctx.ID + "_concatlist",
 			Ext:  ".txt",
 		}
 
@@ -131,7 +138,7 @@ func VideoAndAudio(ctx *Context) File {
 
 	fp_mux_out := File{
 		Dir:  ctx.TempDir,
-		Name: "." + ctx.FilePath.Name + "_mux_" + ctx.ID,
+		Name: "." + ctx.ID + "_mux",
 		Ext:  "." + ctx.Config.Get("video.target_ext").String(),
 	}
 

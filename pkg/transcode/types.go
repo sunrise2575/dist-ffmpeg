@@ -45,7 +45,7 @@ func (ctx *Context) Init(fp_in string, conf gjson.Result, temp_dir string) {
 
 	ctx.FileType = ctx._DecideFileType()
 
-	if ctx.FileType == "video" || ctx.FileType == "video_only" {
+	if ctx.FileType == "video" || ctx.FileType == "video_and_audio" {
 		ctx.VideoLength = ffprobe.VideoTime(ctx.FilePath.Join())
 	}
 
@@ -88,9 +88,9 @@ func (ctx *Context) _DecideFileType() string {
 
 		switch {
 		case exist_video && exist_audio:
-			f_type = "video"
+			f_type = "video_and_audio"
 		case exist_video && !exist_audio:
-			f_type = "video_only"
+			f_type = "video"
 		case !exist_video && exist_audio:
 			f_type = "audio"
 		}

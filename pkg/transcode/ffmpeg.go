@@ -1,6 +1,7 @@
 package transcode
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"os/exec"
@@ -88,9 +89,8 @@ func ffmpegEncodeVideoOnly(fp_in File, fp_out File, ffmpeg_param string) {
 		}).Debugf("Subprocess success")
 }
 
-func ffmpegSplitVideo(ctx *Context, expected_file_count int) []File {
-
-	unit_time := int(math.Max(20, math.Ceil(ctx.VideoLength/float64(expected_file_count))))
+func ffmpegSplitVideo(ctx *Context, expected_file_count int, splited_filename_rule File) []File {
+	unit_time := int(math.Max(16, math.Ceil(ctx.VideoLength/float64(expected_file_count))))
 	expected_file_count = int(math.Ceil(ctx.VideoLength / float64(unit_time)))
 
 	arg := strings.Fields(FFMPEG_COMMON_INPUT_ARG + "-i")
@@ -98,12 +98,7 @@ func ffmpegSplitVideo(ctx *Context, expected_file_count int) []File {
 	arg = append(arg, strings.Fields(FFMPEG_COMMON_OUTPUT_ARG+
 		"-f segment -segment_time "+strconv.Itoa(unit_time)+" -reset_timestamps 1 -c:v copy -an -map 0:v:0")...)
 
-	temp_f := File{
-		Dir:  ctx.TempDir,
-		Name: "." + ctx.FilePath.Name + "_video_" + ctx.ID + "_%d",
-		Ext:  ctx.FilePath.Ext,
-	}
-	arg = append(arg, temp_f.Join())
+	arg = append(arg, splited_filename_rule.Join())
 
 	out, e := exec.Command("ffmpeg", arg...).CombinedOutput()
 	if e != nil {
@@ -134,9 +129,10 @@ func ffmpegSplitVideo(ctx *Context, expected_file_count int) []File {
 	for i := 0; i < expected_file_count*2; i++ {
 		temp = append(temp, File{
 			Dir:  ctx.TempDir,
-			Name: "." + ctx.FilePath.Name + "_video_" + ctx.ID + "_" + strconv.Itoa(i),
+			Name: fmt.Sprintf(splited_filename_rule.Name, i),
 			Ext:  ctx.FilePath.Ext,
 		})
+		logrus.Debugln(temp[len(temp)-1].Join())
 	}
 
 	for _, fp := range temp {

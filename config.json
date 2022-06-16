@@ -30,7 +30,7 @@
       "codec_name": "^(vp9)$",
       "pix_fmt": "^(yuv420p)$"
     },
-    "ffmpeg_param": "-c:v libvpx-vp9 -threads:v 8 -row-mt:v 1 -b:v 0 -pix_fmt:v yuv420p -cpu-used:v 4 -crf:v 27",
+    "ffmpeg_param": "-c:v libvpx-vp9 -threads:v 8 -b:v 0 -row-mt:v 1 -pix_fmt:v yuv420p -cpu-used:v 4 -crf:v 27",
     "target_ext": "webm"
   }
 }
