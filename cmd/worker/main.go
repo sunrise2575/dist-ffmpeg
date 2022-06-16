@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -79,12 +78,10 @@ func main() {
 	ENDPOINT := "tcp://" + SERVER_IP + ":" + SERVER_PORT
 
 	// Read config file
-	/*
-		conf, e := util.ReadJSONFile(PATH_CONFIG)
-		if e != nil {
-			logrus.WithFields(logrus.Fields{"path": PATH_CONFIG}).Panicf("Unable to parse the configure file")
-		}
-	*/
+	conf, e := util.ReadJSONFile(PATH_CONFIG)
+	if e != nil {
+		logrus.WithFields(logrus.Fields{"path": PATH_CONFIG}).Panicf("Unable to parse the configure file")
+	}
 
 	ctx, e := zmq4.NewContext()
 	if e != nil {
@@ -130,12 +127,10 @@ func main() {
 			logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Received a job")
 
 			start := time.Now()
-			time.Sleep(time.Millisecond * 100)
-			_, status := current_fp, "success"
-			//fp_out, status := work(current_fp, conf, PATH_TEMP)
-			elapsed := time.Since(start)
 
-			status = []string{"success", "skip", "fail"}[rand.Intn(3)]
+			_, status := work(current_fp, conf, PATH_TEMP)
+
+			elapsed := time.Since(start)
 
 			// Report to master server
 			switch status {
