@@ -122,7 +122,7 @@ func main() {
 
 			if recv["res"] == "false" {
 				logrus.Warnf("No more avaialbe job. Bye.")
-				return
+				os.Exit(0)
 			}
 
 			current_fp = recv["path"]
@@ -183,13 +183,13 @@ func work(fp_in string, conf gjson.Result, temp_dir string) (string, string) {
 	// transcode
 	switch ctx.FileType {
 	case "image":
-		fp_out = transcode.ImageOnly(&ctx)
+		fallthrough
 	case "audio":
-		fp_out = transcode.AudioOnly(&ctx)
+		fallthrough
 	case "video":
+		fp_out = transcode.SingleStreamOnly(&ctx, ctx.FileType)
+	case "video_and_audio":
 		fp_out = transcode.VideoAndAudio(&ctx)
-	case "video_only":
-		fp_out = transcode.VideoOnly(&ctx)
 	case "image_animated":
 		fallthrough
 	default:
