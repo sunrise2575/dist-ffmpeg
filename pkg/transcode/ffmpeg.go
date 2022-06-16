@@ -20,8 +20,8 @@ func ffmpegEncodeAudioOnly(fp_in File, fp_out File, ffmpeg_param string, audio_s
 	if !(audio_stream_number >= 0) {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_input": fp_in.Join(),
-				"where":          util.GetCurrentFunctionInfo(),
+				"path_input": fp_in.Join(),
+				"where":      util.GetCurrentFunctionInfo(),
 			}).Fatalf("Should be audio_stream_number >= 0")
 	}
 
@@ -37,7 +37,7 @@ func ffmpegEncodeAudioOnly(fp_in File, fp_out File, ffmpeg_param string, audio_s
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_input": fp_in.Join(),
+				"path_input":     fp_in.Join(),
 				"subproc":        "ffmpeg",
 				"subproc_param":  arg,
 				"subproc_output": string(out),
@@ -48,7 +48,7 @@ func ffmpegEncodeAudioOnly(fp_in File, fp_out File, ffmpeg_param string, audio_s
 
 	logrus.WithFields(
 		logrus.Fields{
-			"filepath_input": fp_in.Join(),
+			"path_input":     fp_in.Join(),
 			"subproc":        "ffmpeg",
 			"subproc_param":  arg,
 			"subproc_output": string(out),
@@ -70,7 +70,7 @@ func ffmpegEncodeVideoOnly(fp_in File, fp_out File, ffmpeg_param string) {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_input": fp_in.Join(),
+				"path_input":     fp_in.Join(),
 				"subproc":        "ffmpeg",
 				"subproc_param":  arg,
 				"subproc_output": string(out),
@@ -81,7 +81,7 @@ func ffmpegEncodeVideoOnly(fp_in File, fp_out File, ffmpeg_param string) {
 
 	logrus.WithFields(
 		logrus.Fields{
-			"filepath_input": fp_in.Join(),
+			"path_input":     fp_in.Join(),
 			"subproc":        "ffmpeg",
 			"subproc_param":  arg,
 			"subproc_output": string(out),
@@ -117,7 +117,7 @@ func ffmpegSplitVideo(ctx *Context, expected_file_count int) []File {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_input": ctx.FilePath.Join(),
+				"path_input":     ctx.FilePath.Join(),
 				"subproc":        "ffmpeg",
 				"subproc_param":  arg,
 				"subproc_output": string(out),
@@ -128,7 +128,7 @@ func ffmpegSplitVideo(ctx *Context, expected_file_count int) []File {
 
 	logrus.WithFields(
 		logrus.Fields{
-			"filepath_input": ctx.FilePath.Join(),
+			"path_input":     ctx.FilePath.Join(),
 			"subproc":        "ffmpeg",
 			"subproc_param":  arg,
 			"subproc_output": string(out),
@@ -162,8 +162,8 @@ func ffmpegConcatFiles(fps_in []File, fp_text, fp_out File) {
 	if len(fps_in) == 0 {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_output": fp_out.Join(),
-				"where":           util.GetCurrentFunctionInfo(),
+				"path_output": fp_out.Join(),
+				"where":       util.GetCurrentFunctionInfo(),
 			}).Fatalf("Length of input file list is 0")
 	}
 
@@ -172,9 +172,9 @@ func ffmpegConcatFiles(fps_in []File, fp_text, fp_out File) {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_output": fp_text.Join(),
-				"error":           e,
-				"where":           util.GetCurrentFunctionInfo(),
+				"path_output": fp_text.Join(),
+				"error":       e,
+				"where":       util.GetCurrentFunctionInfo(),
 			}).Fatalf("Failed to create/open file")
 	}
 	defer f_text.Close()
@@ -184,9 +184,9 @@ func ffmpegConcatFiles(fps_in []File, fp_text, fp_out File) {
 		if e != nil {
 			logrus.WithFields(
 				logrus.Fields{
-					"filepath_output": fp_text.Join(),
-					"error":           e,
-					"where":           util.GetCurrentFunctionInfo(),
+					"path_output": fp_text.Join(),
+					"error":       e,
+					"where":       util.GetCurrentFunctionInfo(),
 				}).Fatalf("Failed to write text file")
 		}
 	}
@@ -201,23 +201,23 @@ func ffmpegConcatFiles(fps_in []File, fp_text, fp_out File) {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_output": fp_out.Join(),
-				"subproc":         "ffmpeg",
-				"subproc_param":   arg,
-				"subproc_output":  string(out),
-				"error":           e,
-				"where":           util.GetCurrentFunctionInfo(),
+				"path_output":    fp_out.Join(),
+				"subproc":        "ffmpeg",
+				"subproc_param":  arg,
+				"subproc_output": string(out),
+				"error":          e,
+				"where":          util.GetCurrentFunctionInfo(),
 			}).Fatalf("Subprocess failed")
 	}
 
 	logrus.WithFields(
 		logrus.Fields{
-			"filepath_output": fp_out.Join(),
-			"subproc":         "ffmpeg",
-			"subproc_param":   arg,
-			"subproc_output":  string(out),
-			"error":           e,
-			"where":           util.GetCurrentFunctionInfo(),
+			"path_output":    fp_out.Join(),
+			"subproc":        "ffmpeg",
+			"subproc_param":  arg,
+			"subproc_output": string(out),
+			"error":          e,
+			"where":          util.GetCurrentFunctionInfo(),
 		}).Debugf("Subprocess success")
 
 	for _, fp := range fps_in {
@@ -225,9 +225,9 @@ func ffmpegConcatFiles(fps_in []File, fp_text, fp_out File) {
 		if e != nil {
 			logrus.WithFields(
 				logrus.Fields{
-					"filepath_target": fp.Join(),
-					"error":           e,
-					"where":           util.GetCurrentFunctionInfo(),
+					"path_target": fp.Join(),
+					"error":       e,
+					"where":       util.GetCurrentFunctionInfo(),
 				}).Warnf("Fail to remove a file")
 		}
 	}
@@ -235,9 +235,9 @@ func ffmpegConcatFiles(fps_in []File, fp_text, fp_out File) {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_target": fp_text.Join(),
-				"error":           e,
-				"where":           util.GetCurrentFunctionInfo(),
+				"path_target": fp_text.Join(),
+				"error":       e,
+				"where":       util.GetCurrentFunctionInfo(),
 			}).Warnf("Fail to remove a file")
 	}
 }
@@ -253,22 +253,22 @@ func ffmpegMuxVideoAudio(fp_in_video, fp_in_audio, fp_out File) {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_output": fp_out.Join(),
-				"subproc":         "ffmpeg",
-				"subproc_param":   arg,
-				"subproc_output":  string(out),
-				"error":           e,
-				"where":           util.GetCurrentFunctionInfo(),
+				"path_output":    fp_out.Join(),
+				"subproc":        "ffmpeg",
+				"subproc_param":  arg,
+				"subproc_output": string(out),
+				"error":          e,
+				"where":          util.GetCurrentFunctionInfo(),
 			}).Fatalf("Subprocess failed")
 	}
 
 	logrus.WithFields(
 		logrus.Fields{
-			"filepath_output": fp_out.Join(),
-			"subproc":         "ffmpeg",
-			"subproc_param":   arg,
-			"subproc_output":  string(out),
-			"error":           e,
-			"where":           util.GetCurrentFunctionInfo(),
+			"path_output":    fp_out.Join(),
+			"subproc":        "ffmpeg",
+			"subproc_param":  arg,
+			"subproc_output": string(out),
+			"error":          e,
+			"where":          util.GetCurrentFunctionInfo(),
 		}).Debugf("Subprocess success")
 }

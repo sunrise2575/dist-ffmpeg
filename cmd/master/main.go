@@ -25,7 +25,7 @@ func init() {
 
 	// log options
 	flag.StringVar(&LOG_LEVEL, "loglevel", "info", "panic, fatal, error, warn, info, debug, trace")
-	flag.StringVar(&LOG_FILE, "logfile", "./master.log", "log file location")
+	flag.StringVar(&LOG_FILE, "logfile", "", "log file location")
 	flag.StringVar(&LOG_FORMAT, "logformat", "text", "text, json")
 
 	// distributed processing options
@@ -122,7 +122,7 @@ func main() {
 					select {
 					case fp := <-chan_fp:
 						send_payload["res"] = "true"
-						send_payload["file_path"] = fp
+						send_payload["path"] = fp
 						logrus.WithFields(logrus.Fields{
 							"hostname": recv["hostname"],
 							"pid":      recv["pid"],
@@ -140,7 +140,7 @@ func main() {
 					logrus.WithFields(logrus.Fields{
 						"hostname":     recv["hostname"],
 						"pid":          recv["pid"],
-						"path":         recv["file_path"],
+						"path":         recv["path"],
 						"elapsed_time": recv["elapsed_time"],
 					}).Infof("Complete")
 
@@ -148,15 +148,23 @@ func main() {
 					logrus.WithFields(logrus.Fields{
 						"hostname":     recv["hostname"],
 						"pid":          recv["pid"],
-						"path":         recv["file_path"],
+						"path":         recv["path"],
 						"elapsed_time": recv["elapsed_time"],
 					}).Warnf("Failed")
+
+				case "job_skip":
+					logrus.WithFields(logrus.Fields{
+						"hostname":     recv["hostname"],
+						"pid":          recv["pid"],
+						"path":         recv["path"],
+						"elapsed_time": recv["elapsed_time"],
+					}).Warnf("Skipped")
 
 				case "killed":
 					logrus.WithFields(logrus.Fields{
 						"hostname":     recv["hostname"],
 						"pid":          recv["pid"],
-						"path":         recv["file_path"],
+						"path":         recv["path"],
 						"elapsed_time": recv["elapsed_time"],
 					}).Warnf("Incomplete")
 

@@ -14,9 +14,9 @@ func PathSplit(path string) (string, string, string) {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_target": path,
-				"error":           e,
-				"where":           GetCurrentFunctionInfo(),
+				"path_target": path,
+				"error":       e,
+				"where":       GetCurrentFunctionInfo(),
 			}).Fatalf("filepath.Abs() failed")
 	}
 	dir, right := filepath.Split(path)
@@ -34,9 +34,9 @@ func PathSanitize(path string) string {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_target": path,
-				"error":           e,
-				"where":           GetCurrentFunctionInfo(),
+				"path_target": path,
+				"error":       e,
+				"where":       GetCurrentFunctionInfo(),
 			}).Fatalf("filepath.Abs() failed")
 	}
 

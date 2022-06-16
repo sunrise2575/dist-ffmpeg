@@ -9,17 +9,17 @@ import (
 )
 
 func InitLogrus(log_fp, log_lvl, log_fmt string) {
-	log_fp = PathSanitize(log_fp)
 	if log_fp == "" {
 		logrus.SetOutput(os.Stdout)
 	} else {
+		log_fp = PathSanitize(log_fp)
 		log_f, e := os.OpenFile(log_fp, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if e != nil {
 			logrus.WithFields(
 				logrus.Fields{
-					"filepath_target": log_fp,
-					"error":           e,
-					"where":           GetCurrentFunctionInfo(),
+					"path_target": log_fp,
+					"error":       e,
+					"where":       GetCurrentFunctionInfo(),
 				}).Fatalf("Unable to create log file", log_fp, e)
 		}
 		logrus.SetOutput(io.MultiWriter(log_f, os.Stdout))
@@ -32,7 +32,7 @@ func InitLogrus(log_fp, log_lvl, log_fmt string) {
 		logrus.SetLevel(logrus.FatalLevel)
 	case "error":
 		logrus.SetLevel(logrus.ErrorLevel)
-	case "warn":
+	case "warning":
 		logrus.SetLevel(logrus.WarnLevel)
 	case "info":
 		logrus.SetLevel(logrus.InfoLevel)
@@ -51,9 +51,12 @@ func InitLogrus(log_fp, log_lvl, log_fmt string) {
 	switch log_fmt {
 	case "text":
 		logrus.SetFormatter(&nested.Formatter{
+			FieldsOrder: []string{
+				"hostname", "pid", "path", "subproc", "subproc_param", "subproc_output", "error",
+			},
 			TimestampFormat:  "2006-01-02 15:04:05.000",
 			NoColors:         false,
-			HideKeys:         true,
+			HideKeys:         false,
 			NoFieldsColors:   false,
 			NoFieldsSpace:    false,
 			ShowFullLevel:    false,

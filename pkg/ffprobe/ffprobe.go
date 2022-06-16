@@ -21,7 +21,7 @@ func StreamInfoJSON(fp_in string) []gjson.Result {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_input": fp_in,
+				"path_input":     fp_in,
 				"subproc":        "ffprobe",
 				"subproc_param":  arg,
 				"subproc_output": string(result),
@@ -31,7 +31,7 @@ func StreamInfoJSON(fp_in string) []gjson.Result {
 	}
 	logrus.WithFields(
 		logrus.Fields{
-			"filepath_input": fp_in,
+			"path_input":     fp_in,
 			"subproc":        "ffprobe",
 			"subproc_param":  arg,
 			"subproc_output": string(result),
@@ -51,7 +51,7 @@ func VideoTime(fp_in string) float64 {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_input": fp_in,
+				"path_input":     fp_in,
 				"subproc":        "ffprobe",
 				"subproc_param":  arg,
 				"subproc_output": string(bresult),
@@ -62,7 +62,7 @@ func VideoTime(fp_in string) float64 {
 
 	logrus.WithFields(
 		logrus.Fields{
-			"filepath_input": fp_in,
+			"path_input":     fp_in,
 			"subproc":        "ffprobe",
 			"subproc_param":  arg,
 			"subproc_output": string(bresult),
@@ -93,7 +93,7 @@ func VideoFrame(fp_in string) int {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_input": fp_in,
+				"path_input":     fp_in,
 				"subproc":        "ffprobe",
 				"subproc_param":  arg,
 				"subproc_output": string(bresult),
@@ -104,7 +104,7 @@ func VideoFrame(fp_in string) int {
 
 	logrus.WithFields(
 		logrus.Fields{
-			"filepath_input": fp_in,
+			"path_input":     fp_in,
 			"subproc":        "ffprobe",
 			"subproc_param":  arg,
 			"subproc_output": string(bresult),

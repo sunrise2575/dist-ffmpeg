@@ -130,18 +130,18 @@ func VideoAndAudio(ctx *Context) File {
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_target": fp_video_concat_out.Join(),
-				"error":           e,
-				"where":           util.GetCurrentFunctionInfo(),
+				"path_target": fp_video_concat_out.Join(),
+				"error":       e,
+				"where":       util.GetCurrentFunctionInfo(),
 			}).Warnf("Fail to remove a file")
 	}
 	e = os.Remove(fp_audio.Join())
 	if e != nil {
 		logrus.WithFields(
 			logrus.Fields{
-				"filepath_target": fp_audio.Join(),
-				"error":           e,
-				"where":           util.GetCurrentFunctionInfo(),
+				"path_target": fp_audio.Join(),
+				"error":       e,
+				"where":       util.GetCurrentFunctionInfo(),
 			}).Warnf("Fail to remove a file")
 	}
 

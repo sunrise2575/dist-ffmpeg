@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -25,13 +26,13 @@ func init() {
 	MY_PID = strconv.Itoa(os.Getpid())
 
 	// log options
-	flag.StringVar(&LOG_LEVEL, "loglevel", "info", "panic, fatal, error, warn, info, debug, trace")
-	flag.StringVar(&LOG_FILE, "logfile", "./worker.log", "log file location")
+	flag.StringVar(&LOG_LEVEL, "loglevel", "info", "panic, fatal, error, warning, info, debug, trace")
+	flag.StringVar(&LOG_FILE, "logfile", "", "log file location")
 	flag.StringVar(&LOG_FORMAT, "logformat", "text", "text, json")
 
 	// transcoding options
 	flag.StringVar(&PATH_CONFIG, "conf", "./config.json", "Config file")
-	flag.StringVar(&PATH_TEMP, "temp", "./.temp/", "Temporary directory for transcoding")
+	flag.StringVar(&PATH_TEMP, "temp", "$HOME/.temp/", "Temporary directory for transcoding")
 
 	// distributed processing options
 	flag.StringVar(&SERVER_IP, "ip", "localhost", "master port")
@@ -78,10 +79,12 @@ func main() {
 	ENDPOINT := "tcp://" + SERVER_IP + ":" + SERVER_PORT
 
 	// Read config file
-	conf, e := util.ReadJSONFile(PATH_CONFIG)
-	if e != nil {
-		logrus.WithFields(logrus.Fields{"path": PATH_CONFIG}).Panicf("Unable to parse the configure file")
-	}
+	/*
+		conf, e := util.ReadJSONFile(PATH_CONFIG)
+		if e != nil {
+			logrus.WithFields(logrus.Fields{"path": PATH_CONFIG}).Panicf("Unable to parse the configure file")
+		}
+	*/
 
 	ctx, e := zmq4.NewContext()
 	if e != nil {
@@ -102,7 +105,7 @@ func main() {
 	defer func() {
 		if current_fp != "" {
 			logrus.WithFields(logrus.Fields{"path": current_fp}).Warnf("Incomplete")
-			SendRecv(sock, map[string]string{"req": "killed", "filepath_input": current_fp})
+			SendRecv(sock, map[string]string{"req": "killed", "path": current_fp})
 			logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Report to master")
 		}
 	}()
@@ -123,42 +126,44 @@ func main() {
 				return
 			}
 
-			current_fp = recv["file_path"]
+			current_fp = recv["path"]
 			logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Received a job")
 
 			start := time.Now()
-			fp_out, status := work(current_fp, conf, PATH_TEMP)
+			time.Sleep(time.Millisecond * 100)
+			_, status := current_fp, "success"
+			//fp_out, status := work(current_fp, conf, PATH_TEMP)
 			elapsed := time.Since(start)
+
+			status = []string{"success", "skip", "fail"}[rand.Intn(3)]
 
 			// Report to master server
 			switch status {
 			case "success":
 				logrus.WithFields(logrus.Fields{"path": current_fp}).Infof("Success")
 				SendRecv(sock, map[string]string{
-					"req":             "job_done",
-					"filepath_input":  current_fp,
-					"filepath_output": fp_out,
-					"elapsed_time":    util.Atof(elapsed.Seconds()),
+					"req":          "job_done",
+					"path":         current_fp,
+					"elapsed_time": util.Atof(elapsed.Seconds()),
 				})
 				logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Report complete job")
 
 			case "skip":
 				logrus.WithFields(logrus.Fields{"path": current_fp}).Warnf("Skip")
 				SendRecv(sock, map[string]string{
-					"req":             "job_skip",
-					"filepath_input":  current_fp,
-					"filepath_output": fp_out,
-					"elapsed_time":    util.Atof(elapsed.Seconds()),
+					"req":          "job_skip",
+					"path":         current_fp,
+					"elapsed_time": util.Atof(elapsed.Seconds()),
 				})
 				logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Report skipped job")
 
 			case "fail":
+				//logrus.WithFields(logrus.Fields{"path": current_fp}).Warnf("Failed")
 				logrus.WithFields(logrus.Fields{"path": current_fp}).Warnf("Failed")
 				SendRecv(sock, map[string]string{
-					"req":             "job_fail",
-					"filepath_input":  current_fp,
-					"filepath_output": fp_out,
-					"elapsed_time":    util.Atof(elapsed.Seconds()),
+					"req":          "job_fail",
+					"path":         current_fp,
+					"elapsed_time": util.Atof(elapsed.Seconds()),
 				})
 				logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Report failed job")
 			}
