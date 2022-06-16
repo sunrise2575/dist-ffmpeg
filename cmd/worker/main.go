@@ -24,8 +24,6 @@ func init() {
 	MY_HOSTNAME, _ = os.Hostname()
 	MY_PID = strconv.Itoa(os.Getpid())
 
-	logrus.Debugf("Hostname=%v, PID=%v", MY_HOSTNAME, MY_PID)
-
 	// log options
 	flag.StringVar(&LOG_LEVEL, "loglevel", "info", "panic, fatal, error, warn, info, debug, trace")
 	flag.StringVar(&LOG_FILE, "logfile", "./worker.log", "log file location")
@@ -41,24 +39,27 @@ func init() {
 
 	flag.Parse()
 
-	logrus.Debugf("Argument loglevel=%v", LOG_LEVEL)
-	logrus.Debugf("Argument logfile=%v", LOG_FILE)
-	logrus.Debugf("Argument logformat=%v", LOG_FORMAT)
-	logrus.Debugf("Argument conf=%v", PATH_CONFIG)
-	logrus.Debugf("Argument temp=%v", PATH_TEMP)
-	logrus.Debugf("Argument port=%v", SERVER_PORT)
+	logrus.WithFields(logrus.Fields{"name": "hostname", "value": MY_HOSTNAME}).Debug("Process Info")
+	logrus.WithFields(logrus.Fields{"name": "process_id", "value": MY_PID}).Debug("Process Info")
+
+	logrus.WithFields(logrus.Fields{"name": "loglevel", "value": LOG_LEVEL}).Debug("Argument")
+	logrus.WithFields(logrus.Fields{"name": "logfile", "value": LOG_FILE}).Debug("Argument")
+	logrus.WithFields(logrus.Fields{"name": "logformat", "value": LOG_FORMAT}).Debug("Argument")
+	logrus.WithFields(logrus.Fields{"name": "port", "value": SERVER_PORT}).Debug("Argument")
+	logrus.WithFields(logrus.Fields{"name": "conf", "value": PATH_CONFIG}).Debug("Argument")
+	logrus.WithFields(logrus.Fields{"name": "temp", "value": PATH_TEMP}).Debug("Argument")
 
 	util.InitLogrus(LOG_FILE, LOG_LEVEL, LOG_FORMAT)
 
 	PATH_CONFIG = util.PathSanitize(PATH_CONFIG)
 	if !util.PathIsFile(PATH_CONFIG) {
-		logrus.Fatalf("Unable to find the configure file: %v (%v)", PATH_CONFIG)
+		logrus.WithFields(logrus.Fields{"path": PATH_CONFIG}).Panicf("Unable to find the configure file")
 	}
 
 	PATH_TEMP = util.PathSanitize(PATH_TEMP)
 	e := os.MkdirAll(PATH_TEMP, 0755)
 	if e != nil {
-		logrus.Fatalf("Unable to create/open the temporary directory: %v (%v)", PATH_TEMP, e)
+		logrus.WithFields(logrus.Fields{"path": PATH_TEMP}).Panicf("Unable to create/open the temporary directory")
 	}
 }
 
@@ -79,81 +80,91 @@ func main() {
 	// Read config file
 	conf, e := util.ReadJSONFile(PATH_CONFIG)
 	if e != nil {
-		logrus.Fatalf("Unable to parse the configure file: %v (%v)", PATH_CONFIG, e.Error())
+		logrus.WithFields(logrus.Fields{"path": PATH_CONFIG}).Panicf("Unable to parse the configure file")
 	}
 
 	ctx, e := zmq4.NewContext()
 	if e != nil {
-		logrus.Panicf("Unable to create ZeroMQ context (%v)", e)
+		logrus.WithFields(logrus.Fields{"error": e}).Panicf("Unable to create ZeroMQ context")
 	}
 	sock, e := ctx.NewSocket(zmq4.REQ)
 	if e != nil {
-		logrus.Panicf("Unable to create ZeroMQ socket (%v)", e)
+		logrus.WithFields(logrus.Fields{"error": e}).Panicf("Unable to create ZeroMQ socket")
 	}
 	e = sock.Connect(ENDPOINT)
 	if e != nil {
-		logrus.Panicf("Unable to connect ZeroMQ socket (%v)", e)
+		logrus.WithFields(logrus.Fields{"error": e}).Panicf("Unable to connect ZeroMQ socket")
 	}
-	logrus.Debugf("Connect %v", ENDPOINT)
+	logrus.WithFields(logrus.Fields{"endpoint": ENDPOINT}).Debugf("Connect")
 
 	current_fp := ""
 
 	defer func() {
 		if current_fp != "" {
-			logrus.Warnf("Incomplete: %v", current_fp)
+			logrus.WithFields(logrus.Fields{"path": current_fp}).Warnf("Incomplete")
 			SendRecv(sock, map[string]string{"req": "killed", "filepath_input": current_fp})
-			logrus.Debugf("Report the incomplete job: %v", current_fp)
+			logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Report to master")
 		}
 	}()
 
 	for {
-		// Query to master server
-		recv := SendRecv(sock, map[string]string{"req": "job_want"})
+		func() {
+			defer func() {
+				if p := recover(); p != nil {
+					logrus.WithFields(logrus.Fields{"recover_msg": p}).Warnf("Recovered from panic")
+				}
+			}()
 
-		if recv["res"] == "false" {
-			logrus.Warnf("No more avaialbe job. Bye.")
-			return
-		}
+			// Query to master server
+			recv := SendRecv(sock, map[string]string{"req": "job_want"})
 
-		current_fp = recv["file_path"]
-		logrus.Debugf("Received: %v", current_fp)
+			if recv["res"] == "false" {
+				logrus.Warnf("No more avaialbe job. Bye.")
+				return
+			}
 
-		start := time.Now()
-		fp_out, status := work(current_fp, conf, PATH_TEMP)
-		elapsed := time.Since(start)
+			current_fp = recv["file_path"]
+			logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Received a job")
 
-		// Report to master server
-		switch status {
-		case "success":
-			logrus.Infof("Success: %v", current_fp)
-			SendRecv(sock, map[string]string{
-				"req":             "job_done",
-				"filepath_input":  current_fp,
-				"filepath_output": fp_out,
-				"elapsed_time":    util.Atof(elapsed.Seconds()),
-			})
-			logrus.Debugf("Report the complete job: %v", current_fp)
-		case "skip":
-			logrus.Warnf("Skip: %v", current_fp)
-			SendRecv(sock, map[string]string{
-				"req":             "job_skip",
-				"filepath_input":  current_fp,
-				"filepath_output": fp_out,
-				"elapsed_time":    util.Atof(elapsed.Seconds()),
-			})
-			logrus.Debugf("Report the skipped job: %v", current_fp)
-		case "fail":
-			logrus.Warnf("Failed: %v", current_fp)
-			SendRecv(sock, map[string]string{
-				"req":             "job_fail",
-				"filepath_input":  current_fp,
-				"filepath_output": fp_out,
-				"elapsed_time":    util.Atof(elapsed.Seconds()),
-			})
-			logrus.Debugf("Report the incomplete job: %v", current_fp)
-		}
+			start := time.Now()
+			fp_out, status := work(current_fp, conf, PATH_TEMP)
+			elapsed := time.Since(start)
 
-		current_fp = ""
+			// Report to master server
+			switch status {
+			case "success":
+				logrus.WithFields(logrus.Fields{"path": current_fp}).Infof("Success")
+				SendRecv(sock, map[string]string{
+					"req":             "job_done",
+					"filepath_input":  current_fp,
+					"filepath_output": fp_out,
+					"elapsed_time":    util.Atof(elapsed.Seconds()),
+				})
+				logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Report complete job")
+
+			case "skip":
+				logrus.WithFields(logrus.Fields{"path": current_fp}).Warnf("Skip")
+				SendRecv(sock, map[string]string{
+					"req":             "job_skip",
+					"filepath_input":  current_fp,
+					"filepath_output": fp_out,
+					"elapsed_time":    util.Atof(elapsed.Seconds()),
+				})
+				logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Report skipped job")
+
+			case "fail":
+				logrus.WithFields(logrus.Fields{"path": current_fp}).Warnf("Failed")
+				SendRecv(sock, map[string]string{
+					"req":             "job_fail",
+					"filepath_input":  current_fp,
+					"filepath_output": fp_out,
+					"elapsed_time":    util.Atof(elapsed.Seconds()),
+				})
+				logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Report failed job")
+			}
+
+			current_fp = ""
+		}()
 	}
 }
 
@@ -170,13 +181,13 @@ func work(fp_in string, conf gjson.Result, temp_dir string) (string, string) {
 	// transcode
 	switch ctx.FileType {
 	case "image":
-		fp_out, e = transcode.ImageOnly(&ctx)
+		fp_out = transcode.ImageOnly(&ctx)
 	case "audio":
-		fp_out, e = transcode.AudioOnly(&ctx)
+		fp_out = transcode.AudioOnly(&ctx)
 	case "video":
-		fp_out, e = transcode.VideoAndAudio(&ctx)
+		fp_out = transcode.VideoAndAudio(&ctx)
 	case "video_only":
-		fp_out, e = transcode.VideoOnly(&ctx)
+		fp_out = transcode.VideoOnly(&ctx)
 	case "image_animated":
 		fallthrough
 	default:

@@ -43,8 +43,8 @@ func InitLogrus(log_fp, log_lvl, log_fmt string) {
 	default:
 		logrus.WithFields(
 			logrus.Fields{
-				"arg_name":  "loglovel",
-				"arg_value": log_lvl,
+				"name":  "loglovel",
+				"value": log_lvl,
 			}).Panicf("Wrong argument")
 	}
 
@@ -67,8 +67,8 @@ func InitLogrus(log_fp, log_lvl, log_fmt string) {
 	default:
 		logrus.WithFields(
 			logrus.Fields{
-				"arg_name":  "logformat",
-				"arg_value": log_fmt,
+				"name":  "logformat",
+				"value": log_fmt,
 			}).Panicf("Wrong argument")
 	}
 }

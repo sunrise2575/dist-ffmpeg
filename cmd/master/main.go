@@ -23,8 +23,6 @@ func init() {
 	MY_HOSTNAME, _ = os.Hostname()
 	MY_PID = strconv.Itoa(os.Getpid())
 
-	logrus.Debugf("Hostname=%v, PID=%v", MY_HOSTNAME, MY_PID)
-
 	// log options
 	flag.StringVar(&LOG_LEVEL, "loglevel", "info", "panic, fatal, error, warn, info, debug, trace")
 	flag.StringVar(&LOG_FILE, "logfile", "./master.log", "log file location")
@@ -36,17 +34,20 @@ func init() {
 
 	flag.Parse()
 
-	logrus.Debugf("Argument loglevel=%v", LOG_LEVEL)
-	logrus.Debugf("Argument logfile=%v", LOG_FILE)
-	logrus.Debugf("Argument logformat=%v", LOG_FORMAT)
-	logrus.Debugf("Argument port=%v", SERVER_PORT)
-	logrus.Debugf("Argument dir=%v", DIRECTORY)
+	logrus.WithFields(logrus.Fields{"name": "hostname", "value": MY_HOSTNAME}).Debug("Process Info")
+	logrus.WithFields(logrus.Fields{"name": "process_id", "value": MY_PID}).Debug("Process Info")
+
+	logrus.WithFields(logrus.Fields{"name": "loglevel", "value": LOG_LEVEL}).Debug("Argument")
+	logrus.WithFields(logrus.Fields{"name": "logfile", "value": LOG_FILE}).Debug("Argument")
+	logrus.WithFields(logrus.Fields{"name": "logformat", "value": LOG_FORMAT}).Debug("Argument")
+	logrus.WithFields(logrus.Fields{"name": "port", "value": SERVER_PORT}).Debug("Argument")
+	logrus.WithFields(logrus.Fields{"name": "dir", "value": DIRECTORY}).Debug("Argument")
 
 	util.InitLogrus(LOG_FILE, LOG_LEVEL, LOG_FORMAT)
 
 	DIRECTORY = util.PathSanitize(DIRECTORY)
 	if !util.PathIsDir(DIRECTORY) {
-		logrus.Fatalf("Unable to find the directory: %v (%v)", DIRECTORY)
+		logrus.WithFields(logrus.Fields{"path": DIRECTORY}).Panicf("Unable to find the directory")
 	}
 }
 
@@ -55,17 +56,17 @@ func main() {
 	ENDPOINT := "tcp://*:" + SERVER_PORT
 	ctx, e := zmq4.NewContext()
 	if e != nil {
-		logrus.Fatalf("Unable to create ZeroMQ context (%v)", e)
+		logrus.WithFields(logrus.Fields{"error": e}).Panicf("Unable to create ZeroMQ context")
 	}
 	sock, e := ctx.NewSocket(zmq4.REP)
 	if e != nil {
-		logrus.Fatalf("Unable to create ZeroMQ socket (%v)", e)
+		logrus.WithFields(logrus.Fields{"error": e}).Panicf("Unable to create ZeroMQ socket")
 	}
 	e = sock.Bind("tcp://*:" + SERVER_PORT)
 	if e != nil {
-		logrus.Fatalf("Unable to bind ZeroMQ socket (%v)", e)
+		logrus.WithFields(logrus.Fields{"error": e}).Panicf("Unable to bind ZeroMQ socket")
 	}
-	logrus.Debugf("Bind %v", ENDPOINT)
+	logrus.WithFields(logrus.Fields{"endpoint": ENDPOINT}).Debugf("Bind")
 
 	// iterate files and transcode
 	{
@@ -77,7 +78,8 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			logrus.Infof("Start to seek files recursively in the directory: %v", DIRECTORY)
+			logrus.WithFields(logrus.Fields{"path": DIRECTORY}).
+				Infof("Start to seek files recursively in the directory")
 
 			filepath.Walk(DIRECTORY, func(fp_in string, f_info os.FileInfo, err error) error {
 				if f_info.IsDir() {
@@ -96,7 +98,8 @@ func main() {
 				return nil
 			})
 
-			logrus.Infof("Complete to seek files recursively in the directory: %v", DIRECTORY)
+			logrus.WithFields(logrus.Fields{"path": DIRECTORY}).
+				Infof("Complete to seek files recursively in the directory")
 		}()
 
 		// request handling server
@@ -120,25 +123,42 @@ func main() {
 					case fp := <-chan_fp:
 						send_payload["res"] = "true"
 						send_payload["file_path"] = fp
-						logrus.Infof("%v(%v) will process: %v",
-							recv["hostname"], recv["pid"], fp)
+						logrus.WithFields(logrus.Fields{
+							"hostname": recv["hostname"],
+							"pid":      recv["pid"],
+							"path":     fp,
+						}).Infof("Start")
 					default:
 						send_payload["res"] = "false"
-						logrus.Warnf("%v(%v) requested, but no more job",
-							recv["hostname"], recv["pid"])
+						logrus.WithFields(logrus.Fields{
+							"hostname": recv["hostname"],
+							"pid":      recv["pid"],
+						}).Warnf("Got job request, but no more job")
 					}
 
 				case "job_done":
-					logrus.Infof("%v(%v) completed (elapsed time: %v) %v",
-						recv["hostname"], recv["pid"], recv["elapsed_time"], recv["file_path"])
+					logrus.WithFields(logrus.Fields{
+						"hostname":     recv["hostname"],
+						"pid":          recv["pid"],
+						"path":         recv["file_path"],
+						"elapsed_time": recv["elapsed_time"],
+					}).Infof("Complete")
 
 				case "job_fail":
-					logrus.Warnf("%v(%v) failed (elapsed time: %v): %v",
-						recv["hostname"], recv["pid"], recv["elapsed_time"], recv["file_path"])
+					logrus.WithFields(logrus.Fields{
+						"hostname":     recv["hostname"],
+						"pid":          recv["pid"],
+						"path":         recv["file_path"],
+						"elapsed_time": recv["elapsed_time"],
+					}).Warnf("Failed")
 
 				case "killed":
-					logrus.Warnf("%v(%v) aborted. Incomplete job: %v",
-						recv["hostname"], recv["pid"], recv["file_path"])
+					logrus.WithFields(logrus.Fields{
+						"hostname":     recv["hostname"],
+						"pid":          recv["pid"],
+						"path":         recv["file_path"],
+						"elapsed_time": recv["elapsed_time"],
+					}).Warnf("Incomplete")
 
 				default:
 					// ignore
