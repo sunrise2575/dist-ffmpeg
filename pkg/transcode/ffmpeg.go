@@ -52,7 +52,6 @@ func ffmpegEncodeAudioOnly(fp_in File, fp_out File, ffmpeg_param string, audio_s
 			"subproc":        "ffmpeg",
 			"subproc_param":  arg,
 			"subproc_output": string(out),
-			"error":          e,
 			"where":          util.GetCurrentFunctionInfo(),
 		}).Debugf("Subprocess success")
 }
@@ -85,18 +84,11 @@ func ffmpegEncodeVideoOnly(fp_in File, fp_out File, ffmpeg_param string) {
 			"subproc":        "ffmpeg",
 			"subproc_param":  arg,
 			"subproc_output": string(out),
-			"error":          e,
 			"where":          util.GetCurrentFunctionInfo(),
 		}).Debugf("Subprocess success")
 }
 
-func remove(s []File, i int) []File {
-	s[i] = s[len(s)-1]
-	return s[:len(s)-1]
-}
-
 func ffmpegSplitVideo(ctx *Context, expected_file_count int) []File {
-	result := []File{}
 
 	unit_time := int(math.Max(20, math.Ceil(ctx.VideoLength/float64(expected_file_count))))
 	expected_file_count = int(math.Ceil(ctx.VideoLength / float64(unit_time)))
@@ -106,12 +98,12 @@ func ffmpegSplitVideo(ctx *Context, expected_file_count int) []File {
 	arg = append(arg, strings.Fields(FFMPEG_COMMON_OUTPUT_ARG+
 		"-f segment -segment_time "+strconv.Itoa(unit_time)+" -reset_timestamps 1 -c:v copy -an -map 0:v:0")...)
 
-	temp := File{
+	temp_f := File{
 		Dir:  ctx.TempDir,
 		Name: "." + ctx.FilePath.Name + "_video_" + ctx.ID + "_%d",
 		Ext:  ctx.FilePath.Ext,
 	}
-	arg = append(arg, temp.Join())
+	arg = append(arg, temp_f.Join())
 
 	out, e := exec.Command("ffmpeg", arg...).CombinedOutput()
 	if e != nil {
@@ -132,26 +124,24 @@ func ffmpegSplitVideo(ctx *Context, expected_file_count int) []File {
 			"subproc":        "ffmpeg",
 			"subproc_param":  arg,
 			"subproc_output": string(out),
-			"error":          e,
 			"where":          util.GetCurrentFunctionInfo(),
 		}).Debugf("Subprocess success")
 
-	for i := 0; i < expected_file_count; i++ {
-		temp := File{
+	temp := []File{}
+	result := []File{}
+
+	// expected_file_count*2 is duct taping haha
+	for i := 0; i < expected_file_count*2; i++ {
+		temp = append(temp, File{
 			Dir:  ctx.TempDir,
 			Name: "." + ctx.FilePath.Name + "_video_" + ctx.ID + "_" + strconv.Itoa(i),
 			Ext:  ctx.FilePath.Ext,
-		}
-		result = append(result, temp)
+		})
 	}
 
-	{
-		temp := []File{}
-		copy(temp, result)
-		for i, fp := range temp {
-			if !util.PathIsFile(fp.Join()) {
-				remove(result, i)
-			}
+	for _, fp := range temp {
+		if util.PathIsFile(fp.Join()) {
+			result = append(result, fp)
 		}
 	}
 
@@ -190,6 +180,8 @@ func ffmpegConcatFiles(fps_in []File, fp_text, fp_out File) {
 				}).Fatalf("Failed to write text file")
 		}
 	}
+
+	f_text.Sync()
 
 	// ffmpeg concat
 	arg := strings.Fields(FFMPEG_COMMON_INPUT_ARG + "-f concat -safe 0 -i")

@@ -1,8 +1,7 @@
 package transcode
 
 import (
-	"os"
-
+	"github.com/sirupsen/logrus"
 	"github.com/sunrise2575/VP9-parallel/pkg/ffprobe"
 	"github.com/sunrise2575/VP9-parallel/pkg/util"
 	"github.com/tidwall/gjson"
@@ -109,7 +108,11 @@ func (ctx *Context) SwapFileToOriginal(fp_new File) {
 		Ext:  ctx.FilePath.Ext,
 	}
 
-	os.Rename(ctx.FilePath.Join(), temp.Join())
+	e := util.PathMove(ctx.FilePath.Join(), temp.Join())
+	if e != nil {
+		logrus.Fatalf("File Move failed! %v->%v: %v", fp_new.Join(), temp.Join(), e)
+	}
+	logrus.Debugf("File Move %v->%v", ctx.FilePath.Join(), temp.Join())
 
 	temp = File{
 		Dir:  ctx.FilePath.Dir,
@@ -117,5 +120,9 @@ func (ctx *Context) SwapFileToOriginal(fp_new File) {
 		Ext:  fp_new.Ext,
 	}
 
-	os.Rename(fp_new.Join(), temp.Join())
+	e = util.PathMove(fp_new.Join(), temp.Join())
+	if e != nil {
+		logrus.Fatalf("File Move failed! %v->%v: %v", fp_new.Join(), temp.Join(), e)
+	}
+	logrus.Debugf("File Move %v->%v", fp_new.Join(), temp.Join())
 }

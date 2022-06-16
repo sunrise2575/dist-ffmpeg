@@ -22,7 +22,7 @@
       "tags.language",
       "channels"
     ],
-    "ffmpeg_param": "-vn -ac 2 -c:a libopus -b:a 128k",
+    "ffmpeg_param": "-vn -ac 2 -strict -2 -c:a opus -b:a 128k",
     "target_ext": "ogg"
   },
   "video": {

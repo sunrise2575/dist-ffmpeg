@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -23,6 +24,7 @@ var (
 func init() {
 	MY_HOSTNAME, _ = os.Hostname()
 	MY_PID = strconv.Itoa(os.Getpid())
+	my_home, _ := os.UserHomeDir()
 
 	// log options
 	flag.StringVar(&LOG_LEVEL, "loglevel", "info", "panic, fatal, error, warning, info, debug, trace")
@@ -31,7 +33,7 @@ func init() {
 
 	// transcoding options
 	flag.StringVar(&PATH_CONFIG, "conf", "./config.json", "Config file")
-	flag.StringVar(&PATH_TEMP, "temp", "$HOME/.temp/", "Temporary directory for transcoding")
+	flag.StringVar(&PATH_TEMP, "temp", filepath.Join(my_home, ".temp/"), "Temporary directory for transcoding")
 
 	// distributed processing options
 	flag.StringVar(&SERVER_IP, "ip", "localhost", "master port")

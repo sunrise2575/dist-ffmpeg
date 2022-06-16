@@ -30,7 +30,7 @@ func init() {
 
 	// distributed processing options
 	flag.StringVar(&SERVER_PORT, "port", "5000", "master port")
-	flag.StringVar(&DIRECTORY, "dir", "/fifi/.media/", "File root directory")
+	flag.StringVar(&DIRECTORY, "dir", ".", "File root directory")
 
 	flag.Parse()
 

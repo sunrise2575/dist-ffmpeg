@@ -40,7 +40,12 @@ func VideoAndAudio(ctx *Context) File {
 	audio_complete := make(chan bool, 1)
 
 	go func() {
-		defer close(audio_complete)
+		defer func() {
+			close(audio_complete)
+			if p := recover(); p != nil {
+				logrus.WithFields(logrus.Fields{"recover_msg": p}).Panicf("Recovered from panic")
+			}
+		}()
 
 		if skip_audio {
 			ffmpegEncodeAudioOnly(ctx.FilePath, fp_audio, "-vn -c:a copy", audio_stream_idx)
@@ -74,6 +79,9 @@ func VideoAndAudio(ctx *Context) File {
 			defer func() {
 				close(job_q)
 				wg.Done()
+				if p := recover(); p != nil {
+					logrus.WithFields(logrus.Fields{"recover_msg": p}).Panicf("Recovered from panic")
+				}
 			}()
 			for index, fp := range fps_video {
 				job_q <- job{
@@ -88,7 +96,12 @@ func VideoAndAudio(ctx *Context) File {
 			//for worker_id := 0; worker_id < 1; worker_id++ {
 			wg.Add(1)
 			go func() {
-				defer wg.Done()
+				defer func() {
+					wg.Done()
+					if p := recover(); p != nil {
+						logrus.WithFields(logrus.Fields{"recover_msg": p}).Panicf("Recovered from panic")
+					}
+				}()
 				for j := range job_q {
 					temp := File{
 						Dir:  ctx.TempDir,

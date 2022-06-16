@@ -1,0 +1,1 @@
+go run ./cmd/master -logfile $HOME/$(hostname)-master.log -dir $1
