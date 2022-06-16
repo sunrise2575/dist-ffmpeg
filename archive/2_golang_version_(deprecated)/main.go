@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sunrise2575/VP9-parallel/src/ffmpeg"
-	"github.com/sunrise2575/VP9-parallel/src/fsys"
+	"github.com/sunrise2575/VP9-parallel/pkg/ffmpeg"
+	"github.com/sunrise2575/VP9-parallel/pkg/fsys"
 )
 
 func encodeVP9(fp_in string, audio_stream_number int, ext_out string) string {

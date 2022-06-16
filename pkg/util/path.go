@@ -1,16 +1,23 @@
-package fsys
+package util
 
 import (
-	"log"
 	"os"
+
 	"path/filepath"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
-func Split(path string) (string, string, string) {
+func PathSplit(path string) (string, string, string) {
 	path, e := filepath.Abs(path)
 	if e != nil {
-		log.Panicf("[PANIC] filepath.Abs(%v) failed, error: %v", path, e)
+		logrus.WithFields(
+			logrus.Fields{
+				"filepath_target": path,
+				"error":           e,
+				"where":           GetCurrentFunctionInfo(),
+			}).Fatalf("filepath.Abs() failed")
 	}
 	dir, right := filepath.Split(path)
 	ext := filepath.Ext(right)
@@ -18,21 +25,26 @@ func Split(path string) (string, string, string) {
 	return dir, name, ext
 }
 
-func Join(dir, name, ext string) string {
+func PathJoin(dir, name, ext string) string {
 	return filepath.Join(dir, name+ext)
 }
 
-func Sanitize(path string) string {
+func PathSanitize(path string) string {
 	path, e := filepath.Abs(path)
 	if e != nil {
-		log.Panicf("[PANIC] filepath.Abs(%v) failed, error: %v", path, e)
+		logrus.WithFields(
+			logrus.Fields{
+				"filepath_target": path,
+				"error":           e,
+				"where":           GetCurrentFunctionInfo(),
+			}).Fatalf("filepath.Abs() failed")
 	}
 
 	return path
 }
 
 // IsFile checks that the path is a file
-func IsFile(path string) bool {
+func PathIsFile(path string) bool {
 	fileStat, e := os.Stat(path)
 
 	if os.IsNotExist(e) || fileStat.IsDir() {
@@ -43,7 +55,7 @@ func IsFile(path string) bool {
 }
 
 // IsDir checks that the path is a directory
-func IsDir(path string) bool {
+func PathIsDir(path string) bool {
 	fileStat, e := os.Stat(path)
 
 	if os.IsNotExist(e) || !fileStat.IsDir() {
