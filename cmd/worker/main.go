@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"path/filepath"
@@ -130,7 +131,7 @@ func main() {
 
 			start := time.Now()
 
-			_, status := work(current_fp, conf, PATH_TEMP)
+			status, e := work(current_fp, conf, PATH_TEMP)
 
 			elapsed := time.Since(start)
 
@@ -161,6 +162,7 @@ func main() {
 					"req":          "job_fail",
 					"path":         current_fp,
 					"elapsed_time": util.Atof(elapsed.Seconds()),
+					"error":        e.Error(),
 				})
 				logrus.WithFields(logrus.Fields{"path": current_fp}).Debugf("Report failed job")
 			}
@@ -170,35 +172,37 @@ func main() {
 	}
 }
 
-func work(fp_in string, conf gjson.Result, temp_dir string) (string, string) {
-	fp_out := transcode.File{}
+type CtxKey string
 
-	ctx := transcode.Context{}
-	ctx.Init(fp_in, conf, temp_dir)
-	if ctx.FileType == "" {
-		return fp_out.Join(), "skip"
+func work(fp_in string, conf gjson.Result, temp_dir string) (string, error) {
+	meta := transcode.Metadata{}
+	meta.Init(fp_in, conf, temp_dir)
+	if meta.FileType == "" {
+		return "skip", nil
 	}
 
-	e := true
+	ctx := context.Background()
+
+	var e error
 	// transcode
-	switch ctx.FileType {
+	switch meta.FileType {
 	case "image":
 		fallthrough
 	case "audio":
 		fallthrough
 	case "video":
-		fp_out = transcode.SingleStreamOnly(&ctx, ctx.FileType)
+		e = transcode.SingleStreamOnly(ctx, &meta)
 	case "video_and_audio":
-		fp_out = transcode.VideoAndAudio(&ctx)
+		e = transcode.VideoAndAudio(ctx, &meta)
 	case "image_animated":
 		fallthrough
 	default:
-		return fp_out.Join(), "skip"
+		return "skip", nil
 	}
 
-	if !e {
-		return fp_out.Join(), "fail"
+	if e != nil {
+		return "fail", e
 	}
 
-	return fp_out.Join(), "success"
+	return "success", nil
 }

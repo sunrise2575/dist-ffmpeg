@@ -4,10 +4,10 @@ import (
 	"github.com/sunrise2575/VP9-parallel/pkg/util"
 )
 
-func selectAudioStream(ctx *Context) int {
+func selectAudioStream(meta *Metadata) int {
 	// check the number of audio streams
 	scoreboard := map[int]uint{}
-	for index, info := range ctx.StreamInfo {
+	for index, info := range meta.StreamInfo {
 		if info.Get("codec_type").String() == "audio" {
 			scoreboard[index] = 0
 		}
@@ -17,13 +17,13 @@ func selectAudioStream(ctx *Context) int {
 	}
 
 	// check the selection_prefer query
-	prefer := ctx.Config.Get("audio.selection_prefer")
+	prefer := meta.Config.Get("audio.selection_prefer")
 	if !prefer.Exists() {
 		return 0
 	}
 
 	// check the selection_priority query
-	priority := ctx.Config.Get("audio.selection_priority")
+	priority := meta.Config.Get("audio.selection_priority")
 	if !priority.Exists() {
 		return 0
 	}
@@ -39,7 +39,7 @@ func selectAudioStream(ctx *Context) int {
 
 	// find best-fit
 	for index := range scoreboard {
-		target := ctx.StreamInfo[index]
+		target := meta.StreamInfo[index]
 		target_keys := util.FlattenJSONKey(target)
 		score_unit := 63
 		for key := range priority_keys {
@@ -69,10 +69,12 @@ func selectAudioStream(ctx *Context) int {
 	return max_index
 }
 
-func isSkippable(ctx *Context, codec_type string, stream_idx int) bool {
-	target := ctx.StreamInfo[stream_idx]
+func isSkippable(meta *Metadata, stream_idx int) bool {
+
+	target := meta.StreamInfo[stream_idx]
 	target_keys := util.FlattenJSONKey(target)
-	query := ctx.Config.Get(codec_type).Get("skip_if")
+
+	query := meta.Config.Get(meta.FileType).Get("skip_if")
 	query_keys := util.FlattenJSONKey(query)
 
 	if !(target.Exists() && query.Exists()) {

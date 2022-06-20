@@ -1,29 +1,56 @@
 package transcode
 
-func SingleStreamOnly(ctx *Context, file_type string) File {
+import "context"
+
+func SingleStreamOnly(ctx context.Context, meta *Metadata) error {
 	temp := File{
-		Dir:  ctx.TempDir,
-		Name: "." + ctx.ID,
-		Ext:  "." + ctx.Config.Get(file_type).Get("target_ext").String(),
+		Dir:  meta.TempDir,
+		Name: "." + meta.ID,
+		Ext:  "." + meta.Config.Get(meta.FileType).Get("target_ext").String(),
 	}
 
-	if file_type == "audio" {
+	var e error
+
+	if meta.FileType == "audio" {
 		// audio
-		audio_stream := selectAudioStream(ctx)
-		if isSkippable(ctx, file_type, 0) {
-			ffmpegEncodeAudioOnly(ctx.FilePath, temp, "-vn -c:a copy", audio_stream)
+		audio_stream := selectAudioStream(meta)
+		if isSkippable(meta, 0) {
+			e = ffmpegEncodeAudioOnly(
+				ctx,
+				meta.FilePath,
+				temp,
+				"-vn -c:a copy",
+				audio_stream)
 		} else {
-			ffmpegEncodeAudioOnly(ctx.FilePath, temp, ctx.Config.Get(file_type).Get("ffmpeg_param").String(), audio_stream)
+			e = ffmpegEncodeAudioOnly(
+				ctx,
+				meta.FilePath,
+				temp,
+				meta.Config.Get(meta.FileType).Get("ffmpeg_param").String(),
+				audio_stream)
 		}
 	} else {
 		// image, video
-		if isSkippable(ctx, file_type, 0) {
-			ffmpegEncodeVideoOnly(ctx.FilePath, temp, "-an -c:v copy")
+		if isSkippable(meta, 0) {
+			e = ffmpegEncodeVideoOnly(
+				ctx,
+				meta.FilePath,
+				temp,
+				"-an -c:v copy",
+				0)
 		} else {
-			ffmpegEncodeVideoOnly(ctx.FilePath, temp, ctx.Config.Get(file_type).Get("ffmpeg_param").String())
+			e = ffmpegEncodeVideoOnly(
+				ctx,
+				meta.FilePath,
+				temp,
+				meta.Config.Get(meta.FileType).Get("ffmpeg_param").String(),
+				0)
 		}
 	}
 
-	ctx.SwapFileToOriginal(temp)
-	return temp
+	if e != nil {
+		return e
+	}
+
+	return meta.SwapFileToOriginal(temp)
 }

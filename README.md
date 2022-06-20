@@ -1,77 +1,90 @@
-# Parallel solution for transcoding video as VP9 codec
+# Dist-FFmpeg
 
-## Abstract
+- Go, FFmpeg, ZeroMQ 를 사용해서 만든 고속 분산 병렬 transcoding system
 
-VP9 코덱으로 영상 트랜스코딩 할 때 속도가 느린 단점을 개선한 프로그램
+- 웹브라우저에서 재생되는 압축률 좋은 코덱 WebM VP9으로 변환시키는데에 특화되어 있습니다.
 
-Python으로 프로토타입을 만들고 Go로 실제 사용 가능한 소프트웨어 제작중
+- 이미지, 오디오, 비디오 3가지 종류의 파일을 transcoding 가능합니다.
 
-곧 AutoAVS와 합칠 예정
+## Motivation
 
+- 웹에서 작동되는 비디오 코덱은 H264, VP8, VP9, AV1 정도가 있음
 
-#
+- AV1과 VP9 코덱은 낮은 용량에 고화질임
 
-```
-go build src/
-go run 
+- AV1 코덱은 인코딩/디코딩이 쓸 수 없을정도로 오래 걸리며, 모바일용 하드웨어 디코더가 많이 퍼지지 않았음. 따라서 VP9이 합리적
 
-## Introduction
+- VP9 코덱은 전용 하드웨어 인코더가 엄청나게 비쌈. CPU로 인코딩 필요
 
-트랜스코딩(transcoding)이란 하나의 영상 코덱(codec)에서 다른 영상 코덱으로 데이터 구조를 변환시키는 작업을 말한다. 트랜스코딩은 영상을 디코딩(decoding)하여 인코딩(encoding)하는 과정으로 이루어진다.
+- ffmpeg의 기본 인코더 (libvpx-vp9) 사용하면 최대 8개 hardware thread 만 활용
 
-트랜스코딩은 영상에서는 필수적인 작업이다. 예를들어 웹 브라우저에서는 H264, VP8, VP9, AV1 정도의 영상만 기본적으로 재생시켜주기 때문에 다른 코덱 (H265, DivX, XviD, ...) 으로 저장된 영상은 웹 브라우저를 통해 재생시켜줄 수 없다. 다양한 곳에서 받거나 촬영한 영상들을 웹 브라우저를 통해 재생시키려면 트랜스코딩이 필수적인 것이다. 또한 모바일 및 저사양 기기의 성능을 최대한 활용하기 위해서는, 이들 장비가 가지고 있는 하드웨어 디코더(decoder)를 사용해야 하는데, 하드웨어 디코더는 특정 코덱만 디코딩 해준다.
+- 파일을 divide-and-conquer 할 경우 비슷한 용량을 가지면서도 hardware thread 를 많이 사용하기 때문에 속도가 2~3배 빨라진다는 것을 발견 (성능에 관해서는 [리포트](./REPORT.md) 참고하세요.)
 
-인코딩과 디코딩에는 하드웨어적 방법과 소프트웨어적 방법이 있다. 하드웨어적 방법은 특정 코덱을 디코딩 및 인코딩 할 수 있게 제작된 전자 회로를 이용하는 것이다. 이 방법은 트랜스코딩 속도가 매우 빠르지만 다양한 영상에 적용시킬 수 없어서 지양하는 방법이다. 소프트웨어적인 방법은 대다수가 선호하는 방법이다. 대부분 `ffmpeg`이라는 툴을 이용하여 트랜스코딩을 한다.
+- 이런 divide-and-conquer 방식 및 여러개의 computer를 이용해 분산 처리하여 transcoding에서 높은 throughput 달성
 
-제작자 본인은 홈 서버에 있는 영상물을 웹 브라우저로 노출시켜 보다 편하게 감상하고자 한다. 다만, 홈 서버 특성상 인코딩 팜을 구성하기가 어렵기 때문에 시간, 금액, 방법이 상당히 제한된다. 특히 홈 서버에서는 스토리지 용량이 부족하기 때문에 영상의 화질을 크게 떨어뜨리지 않으면서도, 영상의 용량이 비교적 작아지는 코덱이 좋다. 한편 이러한 코덱을 돌리는데 시간이 과하게 소요되지 않는것이 좋다.
+## System Concept
 
-일반 개인이 쉽게 구할 수 있는 방법은 NVIDIA의 그래픽카드를 사용하는 방법이다. NVIDIA의 그래픽카드에는 H264와 H265의 하드웨어 인코더/디코더가 모두 내장되어 있기 때문에, 소프트웨어적 방법 (`ffmpeg`) 을 이용해 영상을 디코딩하고, 하드웨어적 방법을 통해 H264나 H265의 코덱으로 영상을 저장해두면 된다. H264는 웹 브라우저에서 가장 많이 쓰이지만 화질 대비 압축률이 다른 최신 코덱들에 비해 떨어져서 영상들이 많은 용량을 차지한다. H265는 압축률이 H264의 2배 정도가 되지만, 코덱의 저작권 문제로 인하여 웹 브라우저에서 사용할 수 없다.
+- Apache Spark와 비슷하게, 1개의 master, n개의 worker가 존재
 
-따라서 H264보다 화질 대비 압축률이 좋으면서 웹에서 재생 가능한 VP9과 AV1 중 하나를 선택해야 한다. AV1은 현재 존재하는 코덱 중 가장 최신 코덱으로써 가장 높은 압축률을 보여준다. 하지만 AV1의 하드웨어 디코더가 충분히 시장에 공급되어있지 않아 모바일에서 원활하게 영상을 재생시키기 어렵고, AV1의 소프트웨어 디코더는 극단적으로 느린 속도를 보여준다 (영상 길이의 4~16배의 시간이 걸림)
+- Worker는 master와 접속되는 어떠한 computer에도 존재 가능
 
-결과적으로 홈 서버 환경에서 웹 브라우저로 영상을 제공하는 환경에서 VP9이 최종적인 선택지가 된다. VP9은 하드웨어 인코더가 없어서 CPU에서 동작하는 소프트웨어 인코더 (`ffmpeg`) 를 써야 한다. 이 소프트웨어 인코더는 치명적인 단점이 있는데, `ffmpeg`에서 제공하는 소프트웨어 VP9용 코덱인 `libvpx-vp9`으로 영상을 인코딩 시키면 멀티코어 CPU를 100%로 활용하지 못한다. 다양한 파라미터 값을 넣어 코어를 좀 더 많이 쓰게 설정할 수 있지만, 그럼에도 불구하고 2~6코어 수준만 활용한다.
+- 1대의 computer에 여러개의 worker가 동작 가능
 
-이런 느린 속도를 개선하기 위해, 본 방법에서는 divide-and-conquer 전략을 사용해보고자 한다.
+- 서로 NFS 등으로 파일이 담겨있는 경로를 일치시켜야 함
 
-## Method
+- Worker는 임시폴더를 활용해 처리 중 NFS traffic을 사용하지 않음
 
-<img src="./img/diagram.png" alt="diagram" width="550"/>
+- Worker는 받은 파일에 대해 `config.json` 을 참고하여 ffmpeg parameter를 결정하고 best-effort로 transcoding 수행
 
-이 솔루션은 그림과 같이 demux → split → transcode → concatenate → mux 단계로 영상을 처리한다. 그림에서 V는 비디오를 나타내고 A는 오디오를 나타낸다.
+- Master나 worker를 켜는 순서는 상관이 없고, master가 켜져 있으면 worker를 아무 때나 붙일 수 있음. Worker를 켜면 자동으로 작업을 받아 수행합니다
 
-demux 단계에서는 적절한 비디오와 오디오 스트림을 선택한다. 몇몇 컨테이너 파일 포맷의 경우 (예: mkv) 하나의 파일 안에 비디오와 오디오를 여러개 넣을 수 있다. 거의 대부분의 배포되는 파일에서는 1개의 파일에 1개의 비디오가 들어있음을 암묵적인 원칙으로 지키고 있다. 하지만 오디오의 경우, 영상의 원래 서라운드 오디오, 5.1채널 오디오, 7.1채널 오디오, 더빙 오디오, 배우 및 감독의 코멘터리 오디오를 모두 하나의 파일에 넣는 경우가 비일비재하다. 그러나 웹 브라우저로 출력하는 포맷 (mp4, WebM) 의 경우 영상 스트림을 1개만 허용하는 것으로 알고 있고, 또한 영상을 보는 사람이 매니아가 아닌 경우 코멘터리나 2채널을 초과하는 오디오를 필요로 하지 않는다. 따라서 수많은 오디오 스트림 중 오직 2채널 오디오 스트림만 선택해야 한다. 이를 위해 demux 과정이 필요하다. 각 스트림마다 tag로 정보가 붙어있기 때문에, 이 tag를 정규식으로 match 시켜 원하는 오디오 스트림만 뽑아낸다.
+- 파일이 transcode 전/후 코덱이 같으면 skip. 실패한 파일은 자동으로 넘어감
 
-split 단계에서는 divide-and-conquer를 적용하기 위해 비디오를 적당한 시간 길이로 분할한다. 트랜스코딩의 편의성과 데이터 오염을 막기 위해 키프레임 단위로 자른다. `ffmpeg`에 있는 `segment` 기능을 사용하면 쉽게 분할된다. 비디오 스트림을 몇개로 분할할지는 사용자가 넣어주는 parameter다.
+## System Demo Image
 
-transcode 단계에서는 각각의 분할된 비디오를 `ffmpeg`을 multi process로 실행시켜 병렬 처리를 도모한다. 한편 오디오 역시 웹 브라우저에서 지원하는 오디오 코덱이 있기 때문에, 가장 압축률이 좋고 저작권 문제가 없는 Opus로 트랜스코딩한다.
+<img src="./img/demo.png" height="700">
+ 
+## Preparation
 
-concatenate 단계에서는 트랜스코딩이 다 된 각각의 분할된 조각들을 다시 이어붙인다.
+Ubuntu 18.04 기준입니다.
 
-mux 단계에서는 트랜스코딩이 다 끝난 온전한 형태의 비디오와 오디오를 하나의 파일로 만든다. mp4 나 WebM 과 같은 컨테이너 포맷의 파일이 된다.
+1. NFS 설치
+    ```bash
+    sudo apt install nfs-kernel-server nfs-common -y
+    ```
+    master에는 `sudo vim /etc/exports/` 수정하여 NFS connection open하고 `sudo exportfs -r` 명령으로 적용
 
-## Evaluation
+2. Go 설치
+    ```bash
+    sudo add-apt-repository ppa:longsleep/golang-backports
+    sudo apt update
+    sudo apt install golang-go -y
+    ```
 
-기존 방법의 세팅은 아래와 같다. 영상을 단순히 `ffmpeg` 에 넣고 돌리는 것 뿐이다.
+3. FFmpeg 설치
+    ```bash
+    sudo add-apt-repository ppa:savoury1/ffmpeg4
+    sudo apt-get update
+    sudo apt-get install ffmpeg -y
+    ```
 
-```bash
-ffmpeg -hide_banner -y -analyzeduration 2147483647 -probesize 2147483647 -avoid_negative_ts 1 -i <input>.mp4 -max_muxing_queue_size 4096 -c:v libvpx-vp9 -b:v 0 -pix_fmt:v yuv420p -cpu-used:v 8 -crf:v 27 -c:a libopus -b:a 128k <output>.webm
-```
+4. ZeroMQ 설치
+    ```bash
+    sudo apt install libzmq4-dev -y
+    ```
 
-비교 실험 결과는 아래와 같다. 기존 방법 대비 새 방법(divide-and-conquer)이 2~3배 빠르면서, 인코딩 후 용량은 크게 차이 나지 않는다.
+## Usage
 
-| 번호 | 종류 | 원본 영상 속성 | 원본 영상 용량 (MB) | 새 방법의 인코딩 후 용량 (MB) | 기존 방법의 인코딩 후 용량 (MB) | 원본 영상 길이 (초) | 새 방법의 트랜스코딩 시간 (초) | 새 방법의 트랜스코딩 배속 (배) | 기존 방법의 트랜스코딩 배속 (배) |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 애니메이션 | 1080p, H265, yuv420p | 105.64 | 80.37 | 68.02 | 129 | 169 | 0.763 | 0.407 |
-| 2 | 실사 | 1080p, H265, yuv420p | 621.10 | 541.57 | 493.94 | 746 | 860 | 0.867 | 0.295 |
-| 3 | 애니메이션, 정지화면 다수 | 1080p, H265, yuv420p10le | 89.04 | 49.17 | 50.39 | 951 | 494 | 1.925 | 0.812 |
-| 4 | 애니메이션 | 1080p, H265, yuv420p10le | 255.95 | 135.41 | 135.32 | 711 | 779 | 0.913 | 0.481 |
+- Master side
+    ```bash
+    chmod 755 ./run_master.sh && ./run_master.sh <디렉터리>
+    ```
 
-## Future Work
+- Worker side
+    ```bash
+    chmod 755 ./run_worker.sh && ./run_worker.sh <master IP>
+    ```
 
-- ~~`ctrl+c` 를 눌러 중단시킬 경우 프로그램이 제대로 중단되지 못한다. 빠른 구현을 위해 Python을 썼지만 실제로 쓰려면 `Go`를 쓰는것이 좋아보인다.~~ Go로 재 구현 완료
+## Copyright
 
-- 몇몇 영상 파일의 경우는 오디오 스트림 지정이 제대로 되지 않는 문제가 있었다. `ffmpeg` 옵션을 더 찾아봐야한다.
-
-- 기존에 만들어둔 [AutoAVS](https://github.com/sunrise2575/AutoAVS) 와 합칠 수 있는지 생각해보자.
-
-- 서버를 여러 대 활용하여 분산 인코딩을 할 순 없을지 생각해보자.
+Copyright (c) 2022 All rights reserved by Heeyong Yoon
