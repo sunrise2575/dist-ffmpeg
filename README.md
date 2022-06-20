@@ -1,4 +1,4 @@
-# Dist-FFmpeg
+# dist-ffmpeg
 
 - Go, FFmpeg, ZeroMQ 를 사용해서 만든 고속 분산 병렬 transcoding system
 
