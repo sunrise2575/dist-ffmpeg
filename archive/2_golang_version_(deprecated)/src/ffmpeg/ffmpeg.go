@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sunrise2575/VP9-parallel/src/ffprobe"
-	"github.com/sunrise2575/VP9-parallel/src/fsys"
+	"github.com/sunrise2575/dist-ffmpeg/src/ffprobe"
+	"github.com/sunrise2575/dist-ffmpeg/src/fsys"
 )
 
 const (

@@ -1,7 +1,7 @@
 package transcode
 
 import (
-	"github.com/sunrise2575/VP9-parallel/pkg/util"
+	"github.com/sunrise2575/dist-ffmpeg/pkg/util"
 )
 
 func selectAudioStream(meta *Metadata) int {

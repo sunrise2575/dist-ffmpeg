@@ -1,8 +1,8 @@
 package transcode
 
 import (
-	"github.com/sunrise2575/VP9-parallel/pkg/ffprobe"
-	"github.com/sunrise2575/VP9-parallel/pkg/util"
+	"github.com/sunrise2575/dist-ffmpeg/pkg/ffprobe"
+	"github.com/sunrise2575/dist-ffmpeg/pkg/util"
 	"github.com/tidwall/gjson"
 )
 

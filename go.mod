@@ -1,4 +1,4 @@
-module github.com/sunrise2575/VP9-parallel
+module github.com/sunrise2575/dist-ffmpeg
 
 go 1.17
 

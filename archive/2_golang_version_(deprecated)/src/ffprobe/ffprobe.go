@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sunrise2575/VP9-parallel/src/fsys"
+	"github.com/sunrise2575/dist-ffmpeg/src/fsys"
 	"github.com/tidwall/gjson"
 )
 

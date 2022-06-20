@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"github.com/sunrise2575/VP9-parallel/pkg/util"
+	"github.com/sunrise2575/dist-ffmpeg/pkg/util"
 
 	"github.com/tidwall/gjson"
 )
