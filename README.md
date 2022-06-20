@@ -56,15 +56,15 @@ Ubuntu 18.04 기준입니다.
 
 2. Go 설치
     ```bash
-    sudo add-apt-repository ppa:longsleep/golang-backports
-    sudo apt update
+    sudo add-apt-repository -y ppa:longsleep/golang-backports
+    sudo apt update -y
     sudo apt install golang-go -y
     ```
 
 3. FFmpeg 설치
     ```bash
-    sudo add-apt-repository ppa:savoury1/ffmpeg4
-    sudo apt-get update
+    sudo add-apt-repository -y ppa:savoury1/ffmpeg4
+    sudo apt-get update -y
     sudo apt-get install ffmpeg -y
     ```
 
