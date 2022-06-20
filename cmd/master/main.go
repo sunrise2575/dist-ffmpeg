@@ -10,7 +10,7 @@ import (
 	"github.com/pebbe/zmq4"
 	"github.com/sirupsen/logrus"
 
-	"github.com/sunrise2575/VP9-parallel/pkg/util"
+	"github.com/sunrise2575/dist-ffmpeg/pkg/util"
 )
 
 var (
