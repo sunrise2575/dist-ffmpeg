@@ -192,8 +192,14 @@ func work(fp_in string, conf gjson.Result, temp_dir string) (string, error) {
 		fallthrough
 	case "video":
 		e = transcode.SingleStreamOnly(ctx, &meta)
+		if e != nil {
+			logrus.Errorln(e)
+		}
 	case "video_and_audio":
 		e = transcode.VideoAndAudio(ctx, &meta)
+		if e != nil {
+			logrus.Errorln(e)
+		}
 	case "image_animated":
 		fallthrough
 	default:

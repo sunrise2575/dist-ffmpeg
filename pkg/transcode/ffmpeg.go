@@ -34,7 +34,7 @@ func ffmpegEncodeAudioOnly(ctx context.Context, fp_in File, fp_out File, ffmpeg_
 
 	out, e := exec.CommandContext(ctx, "ffmpeg", arg...).CombinedOutput()
 	if e != nil {
-		return fmt.Errorf("error message: %v, ffmpeg output: %v", e, string(out))
+		return fmt.Errorf("error message: %v, ffmpeg arg: %v, ffmpeg output: %v", e, arg, string(out))
 	}
 
 	logrus.WithFields(
@@ -60,7 +60,7 @@ func ffmpegEncodeVideoOnly(ctx context.Context, fp_in File, fp_out File, ffmpeg_
 
 	out, e := exec.CommandContext(ctx, "ffmpeg", arg...).CombinedOutput()
 	if e != nil {
-		return fmt.Errorf("error message: %v, ffmpeg output: %v", e, string(out))
+		return fmt.Errorf("error message: %v, ffmpeg arg: %v, ffmpeg output: %v", e, arg, string(out))
 	}
 
 	logrus.WithFields(
@@ -93,7 +93,7 @@ func ffmpegSplitVideo(ctx context.Context, fp_in File, dp_out string, splited_fi
 
 	out, e := exec.CommandContext(ctx, "ffmpeg", arg...).CombinedOutput()
 	if e != nil {
-		return nil, fmt.Errorf("error message: %v, ffmpeg output: %v", e, string(out))
+		return nil, fmt.Errorf("error message: %v, ffmpeg arg: %v, ffmpeg output: %v", e, arg, string(out))
 	}
 
 	logrus.WithFields(
@@ -115,7 +115,6 @@ func ffmpegSplitVideo(ctx context.Context, fp_in File, dp_out string, splited_fi
 			Name: fmt.Sprintf(splited_filename_rule.Name, i),
 			Ext:  fp_in.Ext,
 		})
-		logrus.Debugln(temp[len(temp)-1].Join())
 	}
 
 	for _, fp := range temp {
@@ -129,20 +128,20 @@ func ffmpegSplitVideo(ctx context.Context, fp_in File, dp_out string, splited_fi
 
 func ffmpegConcatFiles(ctx context.Context, fps_in []File, fp_text, fp_out File) error {
 	if len(fps_in) == 0 {
-		return fmt.Errorf("Length of input file list is 0")
+		return fmt.Errorf("length of input file list is 0")
 	}
 
 	// write text file for ffmpeg concat function
 	f_text, e := os.OpenFile(fp_text.Join(), os.O_CREATE|os.O_WRONLY, 0644)
 	if e != nil {
-		return fmt.Errorf("Failed to create/open file")
+		return fmt.Errorf("failed to create/open file")
 	}
 	defer f_text.Close()
 
 	for _, fp := range fps_in {
 		_, e := f_text.Write([]byte("file '" + fp.Join() + "'\n"))
 		if e != nil {
-			return fmt.Errorf("Failed to write text file")
+			return fmt.Errorf("failed to write text file")
 		}
 	}
 
@@ -156,7 +155,7 @@ func ffmpegConcatFiles(ctx context.Context, fps_in []File, fp_text, fp_out File)
 
 	out, e := exec.CommandContext(ctx, "ffmpeg", arg...).CombinedOutput()
 	if e != nil {
-		return fmt.Errorf("error message: %v, ffmpeg output: %v", e, string(out))
+		return fmt.Errorf("error message: %v, ffmpeg arg: %v, ffmpeg output: %v", e, arg, string(out))
 	}
 
 	logrus.WithFields(
@@ -172,13 +171,13 @@ func ffmpegConcatFiles(ctx context.Context, fps_in []File, fp_text, fp_out File)
 	for _, fp := range fps_in {
 		e := os.RemoveAll(fp.Join())
 		if e != nil {
-			return fmt.Errorf("Fail to remove a file: %v", fp.Join())
+			return fmt.Errorf("fail to remove a file: %v", fp.Join())
 		}
 	}
 
 	e = os.RemoveAll(fp_text.Join())
 	if e != nil {
-		return fmt.Errorf("Fail to remove a file: %v", fp_text.Join())
+		return fmt.Errorf("fail to remove a file: %v", fp_text.Join())
 	}
 
 	return nil
@@ -193,7 +192,7 @@ func ffmpegMuxVideoAudio(ctx context.Context, fp_in_video, fp_in_audio, fp_out F
 
 	out, e := exec.CommandContext(ctx, "ffmpeg", arg...).CombinedOutput()
 	if e != nil {
-		return fmt.Errorf("error message: %v, ffmpeg output: %v", e, string(out))
+		return fmt.Errorf("error message: %v, ffmpeg arg: %v, ffmpeg output: %v", e, arg, string(out))
 	}
 
 	logrus.WithFields(

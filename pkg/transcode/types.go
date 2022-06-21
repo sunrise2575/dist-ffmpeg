@@ -57,8 +57,8 @@ func (meta *Metadata) Init(fp_in string, conf gjson.Result, temp_dir string) err
 func (meta *Metadata) _DecideFileType() (string, error) {
 	f_type := ""
 
-	ext_image := map[string]bool{".jpg": true, ".png": true, ".gif": true, ".webp": true}
-	ext_audio := map[string]bool{".m4a": true, ".mp3": true, ".ogg": true, ".opus": true, ".mka": true, ".wav": true, ".flac": true}
+	ext_image := map[string]bool{".bmp": true, ".jpg": true, ".png": true, ".gif": true, ".webp": true}
+	ext_audio := map[string]bool{".m4a": true, ".mp3": true, ".ogg": true, ".opus": true, ".mka": true, ".wav": true, ".flac": true, ".dtshd": true, ".tak": true}
 	ext_video := map[string]bool{".asf": true, ".avi": true, ".bik": true, ".flv": true, ".mkv": true, ".mov": true, ".mp4": true, ".mpeg": true, ".3gp": true, ".ts": true, ".webm": true, ".wmv": true}
 
 	if ext_image[meta.FilePath.Ext] {

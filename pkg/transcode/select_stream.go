@@ -7,9 +7,16 @@ import (
 func selectAudioStream(meta *Metadata) int {
 	// check the number of audio streams
 	scoreboard := map[int]uint{}
+
+	// { video, audio, audio } -> not {v:0 a:1 a:2} but {v:0 a:0 a:1}
+	// we need to mark indices within audio stream only
+	real_index_map := map[int]int{}
+	real_index := 0
 	for index, info := range meta.StreamInfo {
 		if info.Get("codec_type").String() == "audio" {
 			scoreboard[index] = 0
+			real_index_map[index] = real_index
+			real_index++
 		}
 	}
 	if len(scoreboard) == 1 {
@@ -66,7 +73,7 @@ func selectAudioStream(meta *Metadata) int {
 		}
 	}
 
-	return max_index
+	return real_index_map[max_index]
 }
 
 func isSkippable(meta *Metadata, stream_idx int) bool {

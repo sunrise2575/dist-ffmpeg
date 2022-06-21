@@ -86,14 +86,26 @@ func main() {
 					return nil
 				}
 				// file path sanity check
-				if len(filepath.Ext(fp_in)) < 2 {
+				_, name, ext := util.PathSplit(fp_in)
+				if len(ext) < 2 {
 					return nil
 				}
 
-				_, name, _ := util.PathSplit(fp_in)
 				if len(name) > 0 && name[0] == '.' {
 					return nil
 				}
+
+				if ext == ".7z" || ext == ".rar" || ext == ".zip" || ext == ".tar" || ext == ".lzh" || ext == ".bin" || ext == ".cue" || ext == ".md5" || ext == ".mds" || ext == ".mdf" || ext == ".log" || ext == ".txt" || ext == ".lrc" {
+					return nil
+				}
+
+				if ext == ".smi" || ext == ".srt" || ext == ".vtt" || ext == ".ass" {
+					return nil
+				}
+
+				// for temporary purpose
+				// if ext == ".webm" || ext == ".ogg" || ext == ".png" { return nil }
+
 				chan_fp <- fp_in
 				return nil
 			})

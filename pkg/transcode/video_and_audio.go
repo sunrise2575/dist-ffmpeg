@@ -32,6 +32,7 @@ func encodeAudioPart(ctx context.Context, meta *Metadata, fp_audio_out File) cha
 			}
 
 			if e != nil {
+				logrus.Errorf("ffmpegEncodeAudioOnly() failed: %v", e)
 				return e
 			}
 
@@ -72,9 +73,11 @@ func videoSegmentProcessor(ctx context.Context, meta *Metadata, job_q <-chan job
 					fp_video_temp,
 					meta.Config.Get("video.ffmpeg_param").String(),
 					video_stream_idx); e != nil {
+					logrus.Errorf("ffmpegEncodeVideoOnly() failed: %v", e)
 					return e
 				}
 				if e := os.RemoveAll(j.filepath.Join()); e != nil {
+					logrus.Errorf("os.RemoveAll() failed: %v", e)
 					return e
 				}
 				fps_video_comp[j.index] = fp_video_temp
@@ -91,23 +94,13 @@ func encodeVideoPart(ctx context.Context, meta *Metadata, fp_video_out File) cha
 		defer close(c)
 		c <- func() error {
 			video_stream_idx := 0
-			{
-				// find video stream index
-				for i, v := range meta.StreamInfo {
-					if v.Get("codec_type").String() == "video" {
-						video_stream_idx = i
-						break
-					}
-				}
-
-				if isSkippable(meta, video_stream_idx) {
-					return ffmpegEncodeVideoOnly(
-						ctx,
-						meta.FilePath,
-						fp_video_out,
-						"-an -c:v copy",
-						video_stream_idx)
-				}
+			if isSkippable(meta, video_stream_idx) {
+				return ffmpegEncodeVideoOnly(
+					ctx,
+					meta.FilePath,
+					fp_video_out,
+					"-an -c:v copy",
+					video_stream_idx)
 			}
 
 			workers := runtime.NumCPU() / 4
@@ -125,6 +118,7 @@ func encodeVideoPart(ctx context.Context, meta *Metadata, fp_video_out File) cha
 				video_stream_idx,
 				workers)
 			if e != nil {
+				logrus.Errorf("ffmpegSplitVideo() failed: %v", e)
 				return e
 			}
 
@@ -148,6 +142,7 @@ func encodeVideoPart(ctx context.Context, meta *Metadata, fp_video_out File) cha
 						}
 					case <-ctx.Done():
 						// canceled
+						logrus.Errorf("videoSegmentFeeder() cancelled: %v", ctx.Err())
 					}
 				}()
 
@@ -163,7 +158,7 @@ func encodeVideoPart(ctx context.Context, meta *Metadata, fp_video_out File) cha
 							}
 							// nothing
 						case <-ctx.Done():
-							// canceled
+							logrus.Errorf("videoSegmentProcessor() cancelled: %v", ctx.Err())
 						}
 					}(worker_id)
 				}
@@ -183,7 +178,11 @@ func encodeVideoPart(ctx context.Context, meta *Metadata, fp_video_out File) cha
 				Ext:  ".txt",
 			}
 
-			return ffmpegConcatFiles(ctx, fps_video_comp, fp_text, fp_video_out)
+			if e := ffmpegConcatFiles(ctx, fps_video_comp, fp_text, fp_video_out); e != nil {
+				logrus.Errorf("ffmpegConcatFiles() failed: %v", e)
+				return e
+			}
+			return nil
 		}()
 	}()
 	return c
@@ -214,7 +213,7 @@ func VideoAndAudio(ctx context.Context, meta *Metadata) error {
 				cancel()
 			}
 		case <-ctx.Done():
-			logrus.Debugf("encodeAudioPart() cancelled")
+			logrus.Errorf("encodeAudioPart() cancelled: %v", ctx.Err())
 		}
 	}()
 
@@ -227,7 +226,7 @@ func VideoAndAudio(ctx context.Context, meta *Metadata) error {
 				cancel()
 			}
 		case <-ctx.Done():
-			logrus.Debugf("encodeAudioPart() cancelled")
+			logrus.Errorf("encodeVideoPart() cancelled: %v", ctx.Err())
 		}
 	}()
 
@@ -244,18 +243,22 @@ func VideoAndAudio(ctx context.Context, meta *Metadata) error {
 	}
 
 	if e := ffmpegMuxVideoAudio(ctx, fp_video, fp_audio, fp_mux_out); e != nil {
+		logrus.Errorf("ffmpegMuxVideoAudio() failed: %v", e)
 		return e
 	}
 
 	if e := meta.SwapFileToOriginal(fp_mux_out); e != nil {
+		logrus.Errorf("meta.SwapFileToOriginal() failed: %v", e)
 		return e
 	}
 
 	if e := os.RemoveAll(fp_video.Join()); e != nil {
+		logrus.Errorf("os.RemoveAll() failed: %v", e)
 		return e
 	}
 
 	if e := os.RemoveAll(fp_audio.Join()); e != nil {
+		logrus.Errorf("os.RemoveAll() failed: %v", e)
 		return e
 	}
 
