@@ -14,12 +14,12 @@
       "channels": "2",
       "tags": {
         "language": "^(jpn|und)$",
-        "title": "(?i)^(?!.*comment).*$"
+        "title": "^(?!.*([Cc]omment|[Dd]ub|[Ee]ng|[Ff]rench|[Ff]rance)).*$"
       }
     },
     "selection_priority": [
-      "tags.title",
       "tags.language",
+      "tags.title",
       "channels"
     ],
     "ffmpeg_param": "-vn -ac 2 -c:a libopus -b:a 128k",
