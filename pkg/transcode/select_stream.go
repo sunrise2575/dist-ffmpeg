@@ -29,15 +29,18 @@ func selectAudioStream(meta *Metadata) int {
 		return 0
 	}
 
-	// check the selection_priority query
-	priority := meta.Config.Get("audio.selection_priority")
-	if !priority.Exists() {
+	if !meta.Config.Get("audio.selection_priority").Exists() {
 		return 0
 	}
 
+	// check the selection_priority query
+	priority_keys := map[string]bool{}
+	for _, v := range meta.Config.Get("audio.selection_priority").Array() {
+		priority_keys[v.String()] = true
+	}
+
 	// check the key equivalence of two query
-	prefer_keys := util.FlattenJSONKey(priority)
-	priority_keys := util.FlattenJSONKey(priority)
+	prefer_keys := util.FlattenJSONKey(prefer)
 	for key := range prefer_keys {
 		if !priority_keys[key] {
 			return 0
@@ -57,17 +60,23 @@ func selectAudioStream(meta *Metadata) int {
 			}
 			score_unit--
 			if score_unit < 0 {
-				// max priority: 64
+				// max priority: 63
 				break
 			}
 		}
 	}
 
 	// find best score and return the stream index
-	max_index := 0
+	max_index := 9999
 	max_score := uint(0)
 	for index, score := range scoreboard {
-		if score > max_score {
+		switch {
+		case score == max_score:
+			if index < max_index {
+				max_score = score
+				max_index = index
+			}
+		case score > max_score:
 			max_score = score
 			max_index = index
 		}
