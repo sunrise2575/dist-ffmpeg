@@ -70,7 +70,7 @@ Ubuntu 18.04 기준입니다.
 
 4. ZeroMQ 설치
     ```bash
-    sudo apt install libzmq4-dev -y
+    sudo apt install libzmq3-dev -y
     ```
 
 ## Usage

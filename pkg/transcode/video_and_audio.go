@@ -103,7 +103,8 @@ func encodeVideoPart(ctx context.Context, meta *Metadata, fp_video_out File) cha
 					video_stream_idx)
 			}
 
-			workers := runtime.NumCPU() / 4
+			workers := runtime.NumCPU() / 6
+			splits := workers * 2
 
 			split_file_rule := File{
 				Dir:  meta.TempDir,
@@ -116,7 +117,7 @@ func encodeVideoPart(ctx context.Context, meta *Metadata, fp_video_out File) cha
 				meta.TempDir,
 				split_file_rule,
 				video_stream_idx,
-				workers)
+				splits)
 			if e != nil {
 				logrus.Errorf("ffmpegSplitVideo() failed: %v", e)
 				return e

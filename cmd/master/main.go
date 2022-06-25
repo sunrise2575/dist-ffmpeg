@@ -95,7 +95,7 @@ func main() {
 					return nil
 				}
 
-				if ext == ".7z" || ext == ".rar" || ext == ".zip" || ext == ".tar" || ext == ".lzh" || ext == ".bin" || ext == ".cue" || ext == ".md5" || ext == ".mds" || ext == ".mdf" || ext == ".log" || ext == ".txt" || ext == ".lrc" {
+				if ext == ".7z" || ext == ".rar" || ext == ".zip" || ext == ".tar" || ext == ".lzh" || ext == ".bin" || ext == ".cue" || ext == ".md5" || ext == ".mds" || ext == ".mdf" || ext == ".log" || ext == ".txt" || ext == ".lrc" || ext == ".exe" {
 					return nil
 				}
 
@@ -104,7 +104,9 @@ func main() {
 				}
 
 				// for temporary purpose
-				// if ext == ".webm" || ext == ".ogg" || ext == ".png" { return nil }
+				if ext == ".webm" || ext == ".ogg" || ext == ".png" {
+					return nil
+				}
 
 				chan_fp <- fp_in
 				return nil
