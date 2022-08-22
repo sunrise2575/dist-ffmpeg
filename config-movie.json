@@ -11,16 +11,16 @@
       "codec_name": "^(vorbis|opus)$"
     },
     "selection_prefer": {
-      "channels": "2",
       "tags": {
-        "language": "^(jpn|und)$",
-        "title": "^(?!.*([Cc]omment|[Dd]ub|[Ee]ng|[Ff]rench|[Ff]rance)).*$"
+        "language": "^(kor)$",
+        "title": "^(?!.*([Cc]omment|[Dd]irecto|[Dd]ub|[Ee]ng|[Ff]rench|[Ff]rance)).*$",
+        "handler_name": "^(?!.*([Cc]omment|[Dd]ub|[Ee]ng|[Ff]rench|[Ff]rance)).*$"
       }
     },
     "selection_priority": [
       "tags.language",
       "tags.title",
-      "channels"
+      "tags.handler_name"
     ],
     "ffmpeg_param": "-vn -ac 2 -c:a libopus -b:a 128k",
     "target_ext": "ogg"
@@ -30,7 +30,7 @@
       "codec_name": "^(vp9)$",
       "pix_fmt": "^(yuv420p)$"
     },
-    "ffmpeg_param": "-c:v libvpx-vp9 -threads:v 8 -b:v 0 -row-mt:v 1 -pix_fmt:v yuv420p -cpu-used:v 4 -crf:v 27",
+    "ffmpeg_param": "-c:v libvpx-vp9 -threads:v 8 -b:v 0 -row-mt:v 1 -pix_fmt:v yuv420p -cpu-used:v 4 -crf:v 24",
     "target_ext": "webm"
   }
 }

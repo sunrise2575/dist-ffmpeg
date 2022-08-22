@@ -33,7 +33,7 @@ func init() {
 	flag.StringVar(&LOG_FORMAT, "logformat", "text", "text, json")
 
 	// transcoding options
-	flag.StringVar(&PATH_CONFIG, "conf", "./config.json", "Config file")
+	flag.StringVar(&PATH_CONFIG, "conf", "./config-anime.json", "Config file")
 	flag.StringVar(&PATH_TEMP, "temp", filepath.Join(my_home, ".temp/"), "Temporary directory for transcoding")
 
 	// distributed processing options

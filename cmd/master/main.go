@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/pebbe/zmq4"
@@ -72,6 +73,12 @@ func main() {
 	{
 		chan_fp := make(chan string, 16)
 
+		ext_exclude := util.Slice2Map([]string{".7z", ".rar", ".zip", ".tar", ".lzh", ".bin", ".cue", ".md5", ".mds", ".mdf", ".log", ".txt", ".lrc", ".exe", ".md", ".py", ".sample", ".go", ".mod", ".sum", ".json", ".sh", ".gitignore"})
+		ext_subtitle := util.Slice2Map([]string{".smi", ".srt", ".vtt", ".ass"})
+		ext_video := util.Slice2Map([]string{".webm"})
+		ext_audio := util.Slice2Map([]string{".ogg"})
+		ext_image := util.Slice2Map([]string{".png"})
+
 		// search files recursively
 		var wg sync.WaitGroup
 		wg.Add(1)
@@ -95,16 +102,13 @@ func main() {
 					return nil
 				}
 
-				if ext == ".7z" || ext == ".rar" || ext == ".zip" || ext == ".tar" || ext == ".lzh" || ext == ".bin" || ext == ".cue" || ext == ".md5" || ext == ".mds" || ext == ".mdf" || ext == ".log" || ext == ".txt" || ext == ".lrc" || ext == ".exe" {
+				ext = strings.ToLower(ext)
+
+				if ext_exclude[ext] || ext_subtitle[ext] {
 					return nil
 				}
 
-				if ext == ".smi" || ext == ".srt" || ext == ".vtt" || ext == ".ass" {
-					return nil
-				}
-
-				// for temporary purpose
-				if ext == ".webm" || ext == ".ogg" || ext == ".png" {
+				if ext_video[ext] || ext_audio[ext] || ext_image[ext] {
 					return nil
 				}
 

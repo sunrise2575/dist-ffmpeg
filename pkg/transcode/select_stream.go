@@ -35,8 +35,10 @@ func selectAudioStream(meta *Metadata) int {
 
 	// check the selection_priority query
 	priority_keys := map[string]bool{}
+	priority_keys_slice := []string{}
 	for _, v := range meta.Config.Get("audio.selection_priority").Array() {
 		priority_keys[v.String()] = true
+		priority_keys_slice = append(priority_keys_slice, v.String())
 	}
 
 	// check the key equivalence of two query
@@ -52,10 +54,13 @@ func selectAudioStream(meta *Metadata) int {
 		target := meta.StreamInfo[index]
 		target_keys := util.FlattenJSONKey(target)
 		score_unit := 63
-		for key := range priority_keys {
+
+		// this part must use a slice (i.e. the slice has an order)
+		// the extracted element may change when using 'range' for map
+		for _, key := range priority_keys_slice {
 			if target_keys[key] {
 				if util.MatchRegexPCRE2(prefer.Get(key).String(), target.Get(key).String()) {
-					scoreboard[index] += (1 << score_unit)
+					scoreboard[index] += (1 << score_unit) // relative to the extracting order by the 'range' statement
 				}
 			}
 			score_unit--
@@ -66,7 +71,7 @@ func selectAudioStream(meta *Metadata) int {
 		}
 	}
 
-	// find best score and return the stream index
+	// find a best score and return the stream index
 	max_index := 9999
 	max_score := uint(0)
 	for index, score := range scoreboard {

@@ -118,3 +118,11 @@ func GetCurrentFunctionInfo() string {
 	frame, _ := frames.Next()
 	return fmt.Sprintf("%s:%s:%d", frame.File, frame.Function, frame.Line)
 }
+
+func Slice2Map(input []string) map[string]bool {
+	result := make(map[string]bool)
+	for _, elem := range input {
+		result[elem] = true
+	}
+	return result
+}

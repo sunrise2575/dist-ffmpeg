@@ -56,8 +56,10 @@ func VideoTime(fp_in string) (float64, error) {
 			"where":          util.GetCurrentFunctionInfo(),
 		}).Tracef("Subprocess success")
 
-	result := strings.TrimRight(string(out), "\r\n")
-	time, e := strconv.ParseFloat(result, 64)
+	_result := strings.TrimRight(string(out), "\r\n")
+	result := strings.Split(_result, "\n")
+
+	time, e := strconv.ParseFloat(result[len(result)-1], 64)
 	if e != nil {
 		return 0.0, e
 	}
@@ -85,8 +87,10 @@ func VideoFrame(fp_in string) (int, error) {
 			"where":          util.GetCurrentFunctionInfo(),
 		}).Tracef("Subprocess success")
 
-	result := strings.TrimRight(string(out), "\r\n")
-	frames, e := strconv.Atoi(result)
+	_result := strings.TrimRight(string(out), "\r\n")
+	result := strings.Split(_result, "\n")
+
+	frames, e := strconv.Atoi(result[len(result)-1])
 	if e != nil {
 		return 0, e
 	}
